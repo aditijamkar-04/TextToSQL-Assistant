@@ -1,0 +1,35 @@
+﻿.env
+.env.*
+!.env.example
+
+.venv/
+__pycache__/
+*.py[cod]
+
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+.pytest_cache/
+.coverage
+
+# Local backups and development-only scripts
+app_backup_before_auth.py
+debug_validator.py
+
+# Local administrator setup utility
+setup_admin.py
+
+# Local logs and temporary files
+*.log
+*.tmp
+
+# Local backups and development-only scripts
+app_backup_before_auth.py
+debug_validator.py
+setup_admin.py
+
+# Local logs and temporary files
+*.log
+*.tmp

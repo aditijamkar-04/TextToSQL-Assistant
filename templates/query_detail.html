@@ -1,0 +1,33 @@
+
+{% extends "base.html" %}
+{% block title %}Query Details{% endblock %}
+{% block page_heading %}Query Details{% endblock %}
+{% block content %}
+<div class="page-intro">
+    <div><p class="eyebrow">QUERY HISTORY</p><h1>Query details</h1></div>
+    <a class="button button-outline" href="{{ url_for('recent_queries') }}">← Back to history</a>
+</div>
+<section class="panel">
+    <h2>Question</h2>
+    <p>{{ item.question }}</p>
+    <p class="muted-text">{{ item.timestamp }}</p>
+</section>
+<section class="panel">
+    <h2>Generated SQL</h2>
+    <pre class="sql-code">{{ item.sql }}</pre>
+</section>
+<section class="panel">
+    <div class="section-heading">
+        <h2>Query Results</h2>
+        <span class="result-count">{{ item.rows | length }} rows returned</span>
+    </div>
+    {% if item.columns %}
+    <div class="table-wrapper"><table>
+        <thead><tr>{% for column in item.columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in item.rows %}<tr>{% for value in row %}<td>{{ value if value is not none else "NULL" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}
+    <p class="muted-text">No result columns were saved.</p>
+    {% endif %}
+</section>
+{% endblock %}

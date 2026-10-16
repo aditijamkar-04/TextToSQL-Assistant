@@ -1,0 +1,16 @@
+
+{% extends "base.html" %}
+{% block title %}Data Sources{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Data Sources</h1>
+    <p>This application uses SQL Server for business data and Ollama
+       for local language-model inference.</p>
+    <h2>SQL Server</h2>
+    <p>Database: <strong>TextToSQL_DB</strong></p>
+    <p class="muted">Live connection testing will be added after we verify
+       the connection function in db.py.</p>
+    <h2>AI Model</h2>
+    <p>Ollama model: <strong>qwen2.5-coder:3b</strong></p>
+</section>
+{% endblock %}

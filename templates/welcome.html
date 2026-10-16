@@ -1,0 +1,1038 @@
+
+{% extends "base.html" %}
+
+{% block title %}Welcome | AI Text-to-SQL Assistant{% endblock %}
+
+{% block content %}
+
+<style>
+/* ==================================================
+   WELCOME PAGE — COMPACT, RESPONSIVE DESIGN
+================================================== */
+
+main.welcome-layout:has(.welcome-page) {
+    width: 100%;
+    max-width: none;
+    margin: 0 auto;
+    padding: 8px 20px 18px;
+}
+
+.welcome-page {
+    --w-bg: #F7FAF5;
+    --w-panel: #FFFFFF;
+    --w-panel-alt: #EDF3E9;
+    --w-text: #34452F;
+    --w-muted: #5F7059;
+    --w-border: #DCE6D8;
+    --w-accent: #496D42;
+    --w-accent-hover: #344F30;
+    --w-glow: rgba(112, 148, 100, .10);
+    --w-code-bg: #F1F5EE;
+    --w-code-text: #34452F;
+    --w-code-keyword: #547D48;
+    --w-code-number: #996126;
+    --w-chip-bg: #F4F8F1;
+
+    width: 100%;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: clamp(18px, 2.2vw, 30px);
+    border: 1px solid var(--w-border);
+    border-radius: 18px;
+    color: var(--w-text);
+    background:
+        radial-gradient(ellipse at 88% 5%, var(--w-glow), transparent 35%),
+        var(--w-bg);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    transition: background .25s ease, color .25s ease;
+}
+
+.welcome-page *,
+.welcome-page *::before,
+.welcome-page *::after {
+    box-sizing: border-box;
+}
+
+.welcome-page h1,
+.welcome-page h2,
+.welcome-page h3,
+.welcome-page p,
+.welcome-page span {
+    font-family: inherit;
+}
+
+.welcome-page p {
+    color: var(--w-muted);
+    -webkit-text-fill-color: var(--w-muted);
+}
+
+.welcome-page h1,
+.welcome-page h2,
+.welcome-page h3 {
+    color: var(--w-text);
+    -webkit-text-fill-color: var(--w-text);
+}
+
+.welcome-page a {
+    text-decoration: none;
+}
+
+.welcome-page a:focus-visible {
+    outline: 3px solid var(--w-accent);
+    outline-offset: 4px;
+}
+
+/* ==================================================
+   DARK — JET BLACK / ROYAL AMETHYST / ELECTRIC CYAN
+================================================== */
+
+html[data-theme="dark"] .welcome-page {
+    --w-bg: #09090D;
+    --w-panel: #13121B;
+    --w-panel-alt: #1D182B;
+    --w-text: #F5F1FF;
+    --w-muted: #B9B2CB;
+    --w-border: #352744;
+    --w-accent: #00F5FF;
+    --w-accent-hover: #70FCFF;
+    --w-glow: rgba(109, 40, 217, .20);
+    --w-code-bg: #0B0A12;
+    --w-code-text: #E9E4FF;
+    --w-code-keyword: #C4A1FF;
+    --w-code-number: #00F5FF;
+    --w-chip-bg: #171323;
+}
+
+html[data-theme="dark"] .welcome-page .w-gradient {
+    background: linear-gradient(100deg, #B794FF, #00F5FF);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme="dark"] .welcome-page .w-primary {
+    background: linear-gradient(110deg, #B794FF, #00F5FF);
+    color: #09090D;
+    -webkit-text-fill-color: #09090D;
+    box-shadow: 0 0 24px rgba(0, 245, 255, .13);
+}
+
+html[data-theme="dark"] .welcome-page .w-primary:hover {
+    background: linear-gradient(110deg, #CBB1FF, #8BFFFF);
+}
+
+html[data-theme="dark"] .welcome-page .w-logo {
+    color: #00F5FF;
+    -webkit-text-fill-color: #00F5FF;
+    background: #211530;
+    border-color: #513578;
+}
+
+html[data-theme="dark"] .welcome-page .w-eyebrow {
+    background: rgba(109, 40, 217, .15);
+    border-color: #53347B;
+}
+
+html[data-theme="dark"] .welcome-page .w-code-keyword {
+    color: #C4A1FF;
+    -webkit-text-fill-color: #C4A1FF;
+}
+
+html[data-theme="dark"] .welcome-page .w-code-number {
+    color: #00F5FF;
+    -webkit-text-fill-color: #00F5FF;
+}
+
+html[data-theme="dark"] .welcome-page .w-feature-icon {
+    background: #241735;
+    color: #00F5FF;
+    -webkit-text-fill-color: #00F5FF;
+}
+
+html[data-theme="dark"] .welcome-page .w-status-dot {
+    background: #00F5FF;
+    box-shadow: 0 0 10px rgba(0, 245, 255, .55);
+}
+
+/* ==================================================
+   LIGHT — SOFT WHITE / SAGE GREEN / DEEP OLIVE
+================================================== */
+
+html[data-theme="light"] .welcome-page {
+    --w-bg: #F7FAF5;
+    --w-panel: #FFFFFF;
+    --w-panel-alt: #EDF3E9;
+    --w-text: #34452F;
+    --w-muted: #5F7059;
+    --w-border: #DCE6D8;
+    --w-accent: #496D42;
+    --w-accent-hover: #344F30;
+    --w-glow: rgba(112, 148, 100, .12);
+    --w-code-bg: #F1F5EE;
+    --w-code-text: #34452F;
+    --w-code-keyword: #547D48;
+    --w-code-number: #996126;
+    --w-chip-bg: #F4F8F1;
+}
+
+html[data-theme="light"] .welcome-page .w-gradient {
+    background: linear-gradient(100deg, #496D42, #7C9B70);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme="light"] .welcome-page .w-primary {
+    background: #344F30;
+    color: #FFFFFF;
+    -webkit-text-fill-color: #FFFFFF;
+}
+
+html[data-theme="light"] .welcome-page .w-primary:hover {
+    background: #496D42;
+}
+
+html[data-theme="light"] .welcome-page .w-logo {
+    color: #496D42;
+    -webkit-text-fill-color: #496D42;
+    background: #EDF3E9;
+    border-color: #DCE6D8;
+}
+
+html[data-theme="light"] .welcome-page .w-eyebrow {
+    background: #EDF3E9;
+    border-color: #DCE6D8;
+}
+
+html[data-theme="light"] .welcome-page .w-code-keyword {
+    color: #547D48;
+    -webkit-text-fill-color: #547D48;
+}
+
+html[data-theme="light"] .welcome-page .w-code-number {
+    color: #996126;
+    -webkit-text-fill-color: #996126;
+}
+
+html[data-theme="light"] .welcome-page .w-feature-icon {
+    background: #EDF3E9;
+    color: #496D42;
+    -webkit-text-fill-color: #496D42;
+}
+
+/* ==================================================
+   READ — SAGE GREEN / WALNUT BROWN / AMBER
+================================================== */
+
+html[data-theme="read"] .welcome-page {
+    --w-bg: #F4EBDD;
+    --w-panel: #FBF5E9;
+    --w-panel-alt: #E9E1D0;
+    --w-text: #342D26;
+    --w-muted: #655548;
+    --w-border: #D9CBB5;
+    --w-accent: #79552F;
+    --w-accent-hover: #604735;
+    --w-glow: rgba(217, 154, 50, .14);
+    --w-code-bg: #EEE3D1;
+    --w-code-text: #342D26;
+    --w-code-keyword: #52704B;
+    --w-code-number: #98631F;
+    --w-chip-bg: #F8F0E2;
+    border-radius: 12px;
+    background:
+        radial-gradient(ellipse at 90% 5%, var(--w-glow), transparent 32%),
+        var(--w-bg);
+}
+
+html[data-theme="read"] .welcome-page .w-gradient {
+    background: linear-gradient(100deg, #52704B, #B87925);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme="read"] .welcome-page .w-primary {
+    background: #604735;
+    color: #FFFFFF;
+    -webkit-text-fill-color: #FFFFFF;
+    box-shadow: 0 3px 10px rgba(96, 71, 53, .12);
+}
+
+html[data-theme="read"] .welcome-page .w-primary:hover {
+    background: #79552F;
+}
+
+html[data-theme="read"] .welcome-page .w-logo {
+    color: #604735;
+    -webkit-text-fill-color: #604735;
+    background: #E9E1D0;
+    border-color: #D9CBB5;
+}
+
+html[data-theme="read"] .welcome-page .w-eyebrow {
+    background: #E9E1D0;
+    border-color: #D9CBB5;
+}
+
+html[data-theme="read"] .welcome-page .w-code-keyword {
+    color: #52704B;
+    -webkit-text-fill-color: #52704B;
+}
+
+html[data-theme="read"] .welcome-page .w-code-number {
+    color: #98631F;
+    -webkit-text-fill-color: #98631F;
+}
+
+html[data-theme="read"] .welcome-page .w-feature-icon {
+    background: #E9E1D0;
+    color: #604735;
+    -webkit-text-fill-color: #604735;
+}
+
+html[data-theme="read"] .welcome-page .w-preview,
+html[data-theme="read"] .welcome-page .w-feature {
+    box-shadow: none;
+}
+
+/* ==================================================
+   BRAND — COMPACT
+   Account buttons are intentionally omitted here.
+   base.html already contains Sign In / Register.
+================================================== */
+
+.w-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 18px;
+}
+
+.w-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    color: var(--w-text);
+    -webkit-text-fill-color: var(--w-text);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -.3px;
+}
+
+.w-logo {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid var(--w-border);
+    border-radius: 11px;
+    background: var(--w-panel-alt);
+    font-size: 19px;
+}
+
+.w-brand-accent {
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+}
+
+/* ==================================================
+   BUTTONS
+================================================== */
+
+.w-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 10px 15px;
+    border: 1px solid var(--w-border);
+    border-radius: 9px;
+    background: var(--w-panel);
+    color: var(--w-text);
+    -webkit-text-fill-color: var(--w-text);
+    font-size: 12px;
+    font-weight: 750;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease,
+                background .18s ease;
+}
+
+.w-btn:hover {
+    transform: translateY(-2px);
+}
+
+.w-btn.w-primary {
+    border-color: transparent;
+}
+
+.w-btn.w-secondary:hover {
+    background: var(--w-panel-alt);
+}
+
+/* ==================================================
+   HERO — HEADLINE AND SQL PREVIEW SIDE BY SIDE
+================================================== */
+
+.w-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    align-items: center;
+    gap: clamp(22px, 3vw, 42px);
+}
+
+.w-hero-copy,
+.w-preview-wrap {
+    min-width: 0;
+}
+
+.w-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 13px;
+    padding: 7px 10px;
+    border: 1px solid var(--w-border);
+    border-radius: 999px;
+    background: var(--w-panel-alt);
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .9px;
+}
+
+.w-status-dot {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #5EA86B;
+}
+
+.w-heading {
+    margin: 0 0 14px;
+    font-size: clamp(36px, 4vw, 57px);
+    line-height: 1.04;
+    font-weight: 850;
+    letter-spacing: -1.8px;
+}
+
+.w-gradient {
+    display: inline-block;
+}
+
+.w-description {
+    max-width: 500px;
+    margin: 0 0 17px;
+    font-size: 13px;
+    line-height: 1.75;
+}
+
+.w-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-bottom: 17px;
+}
+
+.w-trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 10px;
+}
+
+.w-trust span {
+    color: var(--w-muted);
+    -webkit-text-fill-color: var(--w-muted);
+}
+
+.w-trust strong {
+    margin-right: 3px;
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+}
+
+/* ==================================================
+   QUERY STUDIO PREVIEW
+================================================== */
+
+.w-preview {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--w-border);
+    border-radius: 15px;
+    background: var(--w-panel);
+    box-shadow: 0 12px 30px rgba(35, 45, 35, .07);
+}
+
+html[data-theme="dark"] .welcome-page .w-preview {
+    box-shadow: 0 14px 35px rgba(0, 0, 0, .32),
+                0 0 24px rgba(109, 40, 217, .10);
+    border-color: #4A3265;
+}
+
+.w-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--w-border);
+    background: var(--w-panel-alt);
+}
+
+.w-window-dots {
+    display: flex;
+    gap: 5px;
+}
+
+.w-window-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9BA99A;
+}
+
+html[data-theme="dark"] .welcome-page .w-window-dots span:first-child {
+    background: #F472B6;
+}
+
+html[data-theme="dark"] .welcome-page .w-window-dots span:nth-child(2) {
+    background: #FBBF24;
+}
+
+html[data-theme="dark"] .welcome-page .w-window-dots span:nth-child(3) {
+    background: #00F5FF;
+}
+
+.w-preview-label {
+    color: var(--w-muted);
+    -webkit-text-fill-color: var(--w-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .6px;
+}
+
+.w-preview-body {
+    padding: clamp(13px, 1.5vw, 18px);
+}
+
+.w-kicker {
+    margin: 0 0 7px;
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .7px;
+}
+
+.w-question {
+    margin: 0 0 15px;
+    padding: 10px 12px;
+    border: 1px solid var(--w-border);
+    border-radius: 8px;
+    background: var(--w-panel-alt);
+    color: var(--w-text);
+    -webkit-text-fill-color: var(--w-text);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.w-sql {
+    overflow-x: auto;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--w-border);
+    border-radius: 9px;
+    background: var(--w-code-bg);
+    color: var(--w-code-text);
+    -webkit-text-fill-color: var(--w-code-text);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 10px;
+    line-height: 1.7;
+    white-space: pre;
+    tab-size: 4;
+}
+
+.w-code-keyword {
+    color: var(--w-code-keyword);
+    -webkit-text-fill-color: var(--w-code-keyword);
+    font-weight: 800;
+}
+
+.w-code-number {
+    color: var(--w-code-number);
+    -webkit-text-fill-color: var(--w-code-number);
+    font-weight: 700;
+}
+
+.w-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid var(--w-border);
+    border-radius: 9px;
+    background: var(--w-panel-alt);
+}
+
+.w-result-title {
+    color: var(--w-text);
+    -webkit-text-fill-color: var(--w-text);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.w-result-subtitle {
+    margin-top: 3px;
+    color: var(--w-muted);
+    -webkit-text-fill-color: var(--w-muted);
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.w-result-badge {
+    flex-shrink: 0;
+    padding: 5px 7px;
+    border: 1px solid var(--w-border);
+    border-radius: 6px;
+    background: var(--w-bg);
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+    font-size: 8px;
+    font-weight: 850;
+}
+
+.w-preview-note {
+    margin: 9px 0 0;
+    color: var(--w-muted);
+    -webkit-text-fill-color: var(--w-muted);
+    font-size: 9px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* ==================================================
+   EXAMPLE QUESTIONS
+================================================== */
+
+.w-examples {
+    margin-top: 24px;
+}
+
+.w-section-title {
+    margin: 0 0 11px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.w-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.w-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 10px;
+    border: 1px solid var(--w-border);
+    border-radius: 8px;
+    background: var(--w-chip-bg);
+    color: var(--w-text);
+    -webkit-text-fill-color: var(--w-text);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.w-chip-mark {
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+    font-weight: 900;
+}
+
+/* ==================================================
+   FEATURE CARDS
+================================================== */
+
+.w-features {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 11px;
+    margin-top: 17px;
+}
+
+.w-feature {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--w-border);
+    border-radius: 11px;
+    background: var(--w-panel);
+    transition: transform .2s ease, border-color .2s ease;
+}
+
+.w-feature:hover {
+    transform: translateY(-2px);
+    border-color: var(--w-accent);
+}
+
+.w-feature-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 9px;
+    border-radius: 9px;
+    background: var(--w-panel-alt);
+    color: var(--w-accent);
+    -webkit-text-fill-color: var(--w-accent);
+    font-size: 16px;
+}
+
+.w-feature h3 {
+    margin: 0 0 6px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.w-feature p {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.65;
+}
+
+/* ==================================================
+   FOOTER
+================================================== */
+
+.w-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin-top: 19px;
+    color: var(--w-muted);
+    -webkit-text-fill-color: var(--w-muted);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-align: center;
+}
+
+.w-footer-line {
+    width: 20px;
+    height: 1px;
+    background: var(--w-border);
+}
+
+/* ==================================================
+   RESPONSIVE LAYOUT
+================================================== */
+
+@media (min-width: 1500px) {
+    main.welcome-layout:has(.welcome-page) {
+        padding-right: 28px;
+        padding-left: 28px;
+    }
+
+    .welcome-page {
+        padding: 30px 36px;
+    }
+}
+
+@media (max-width: 1000px) {
+    main.welcome-layout:has(.welcome-page) {
+        padding: 8px 14px 16px;
+    }
+
+    .w-hero {
+        grid-template-columns: minmax(0, 1fr) minmax(0, .95fr);
+        gap: 20px;
+    }
+
+    .w-heading {
+        font-size: clamp(32px, 4vw, 43px);
+        letter-spacing: -1.2px;
+    }
+
+    .w-features {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    main.welcome-layout:has(.welcome-page) {
+        padding: 4px 8px 12px;
+    }
+
+    .welcome-page {
+        padding: 17px;
+        border-radius: 13px;
+    }
+
+    .w-topbar {
+        margin-bottom: 18px;
+    }
+
+    .w-hero {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 21px;
+    }
+
+    .w-heading {
+        font-size: clamp(37px, 9vw, 52px);
+    }
+
+    .w-description {
+        font-size: 12px;
+    }
+
+    .w-hero-actions {
+        gap: 8px;
+    }
+
+    .w-preview-wrap {
+        width: 100%;
+    }
+
+    .w-examples {
+        margin-top: 22px;
+    }
+}
+
+@media (max-width: 420px) {
+    .welcome-page {
+        padding: 13px;
+    }
+
+    .w-brand {
+        font-size: 13px;
+    }
+
+    .w-features {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .w-preview-body {
+        padding: 11px;
+    }
+
+    .w-sql {
+        padding: 10px;
+        font-size: 9px;
+    }
+
+    .w-footer {
+        gap: 6px;
+        letter-spacing: .7px;
+        line-height: 1.8;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .welcome-page *,
+    .welcome-page *::before,
+    .welcome-page *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+</style>
+
+<div class="welcome-page">
+
+    <!-- Brand only: account navigation is already in base.html -->
+    <header class="w-topbar">
+        <a class="w-brand" href="{{ url_for('welcome') }}">
+            <span class="w-logo" aria-hidden="true">⌘</span>
+            <span>
+                Text to <span class="w-brand-accent">SQL</span> Assistant
+            </span>
+        </a>
+    </header>
+
+    <!-- Main hero -->
+    <section class="w-hero">
+
+        <div class="w-hero-copy">
+
+            <div class="w-eyebrow">
+                <span class="w-status-dot"></span>
+                AI-POWERED DATABASE ASSISTANT
+            </div>
+
+            <h1 class="w-heading">
+                Ask in English.<br>
+                <span class="w-gradient">Think in SQL.</span>
+            </h1>
+
+            <p class="w-description">
+                Meet your intelligent database companion. Turn natural-language
+                questions into SQL queries, explore results, and uncover insights
+                without writing every query yourself.
+            </p>
+
+            <!-- One primary action, avoiding duplicate Sign In buttons -->
+            <div class="w-hero-actions">
+                <a class="w-btn w-primary"
+                   href="{{ url_for('register') }}">
+                    Get Started <span aria-hidden="true">→</span>
+                </a>
+            </div>
+
+            <div class="w-trust">
+                <span><strong>✓</strong> Natural language</span>
+                <span><strong>✓</strong> SQL Server</span>
+                <span><strong>✓</strong> Query validation</span>
+            </div>
+
+        </div>
+
+        <!-- Query Studio preview -->
+        <div class="w-preview-wrap">
+            <div class="w-preview">
+
+                <div class="w-preview-header">
+                    <div class="w-window-dots" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <span class="w-preview-label">QUERY STUDIO</span>
+                    <span class="w-preview-label">T-SQL</span>
+                </div>
+
+                <div class="w-preview-body">
+
+                    <p class="w-kicker">✦ YOUR QUESTION</p>
+
+                    <div class="w-question">
+                        Show employees earning above 50000
+                    </div>
+
+                    <p class="w-kicker">&lt;/&gt; GENERATED SQL</p>
+
+                    <pre class="w-sql"><span class="w-code-keyword">SELECT</span>
+    EmployeeID,
+    EmployeeName,
+    Salary
+<span class="w-code-keyword">FROM</span>
+    dbo.Employees
+<span class="w-code-keyword">WHERE</span>
+    Salary &gt; <span class="w-code-number">50000</span>
+<span class="w-code-keyword">ORDER BY</span>
+    Salary <span class="w-code-keyword">DESC</span>;</pre>
+
+                    <div class="w-result">
+                        <div>
+                            <div class="w-result-title">
+                                Example query generated
+                            </div>
+                            <div class="w-result-subtitle">
+                                Illustrative preview, not live execution
+                            </div>
+                        </div>
+
+                        <span class="w-result-badge">READ-ONLY</span>
+                    </div>
+
+                    <p class="w-preview-note">
+                        Example SQL · Actual results depend on your database
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Example questions -->
+    <section class="w-examples">
+        <h2 class="w-section-title">
+            <span class="w-brand-accent">✦</span>
+            Questions your data can answer
+        </h2>
+
+        <div class="w-chips">
+            <span class="w-chip">
+                <span class="w-chip-mark">↗</span>
+                Employees earning above 50000
+            </span>
+
+            <span class="w-chip">
+                <span class="w-chip-mark">↗</span>
+                Show the highest salary
+            </span>
+
+            <span class="w-chip">
+                <span class="w-chip-mark">↗</span>
+                Employees by department
+            </span>
+
+            <span class="w-chip">
+                <span class="w-chip-mark">↗</span>
+                Calculate average salary
+            </span>
+        </div>
+    </section>
+
+    <!-- Feature cards -->
+    <section class="w-features" aria-label="Features">
+
+        <article class="w-feature">
+            <div class="w-feature-icon" aria-hidden="true">✧</div>
+            <h3>Natural Language AI</h3>
+            <p>
+                Describe what you need in everyday language and generate SQL.
+            </p>
+        </article>
+
+        <article class="w-feature">
+            <div class="w-feature-icon" aria-hidden="true">⌘</div>
+            <h3>Local AI Model</h3>
+            <p>
+                Use Ollama to run your selected language model locally.
+            </p>
+        </article>
+
+        <article class="w-feature">
+            <div class="w-feature-icon" aria-hidden="true">◈</div>
+            <h3>Safer Query Workflow</h3>
+            <p>
+                Validate generated SQL and use read-only database permissions.
+            </p>
+        </article>
+
+        <article class="w-feature">
+            <div class="w-feature-icon" aria-hidden="true">▥</div>
+            <h3>Results &amp; Insights</h3>
+            <p>
+                Explore returned data and visualize results using charts.
+            </p>
+        </article>
+
+    </section>
+
+    <footer class="w-footer">
+        <span class="w-footer-line"></span>
+        ASK SMARTER · EXPLORE FASTER · DISCOVER MORE
+        <span class="w-footer-line"></span>
+    </footer>
+
+</div>
+
+{% endblock %}

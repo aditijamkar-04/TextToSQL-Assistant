@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<h1>Admin Dashboard</h1>
+<p class="muted">Manage application accounts and review recent query activity.</p>
+
+<div class="card">
+    <h2>User Accounts</h2>
+    <p>Total accounts: <strong>{{ user_count }}</strong></p>
+    <p>Active accounts: <strong>{{ active_count }}</strong></p>
+    <a class="button" href="{{ url_for('admin_users') }}">Manage Users</a>
+</div>
+
+<div class="card">
+    <h2>Recent Query Activity</h2>
+    {% if history %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr><th>User</th><th>Question</th><th>Status</th><th>Time</th></tr>
+            </thead>
+            <tbody>
+                {% for item in history %}
+                <tr>
+                    <td>{{ item.username }}</td>
+                    <td>{{ item.question }}</td>
+                    <td>{{ item.status }}</td>
+                    <td>{{ item.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="muted">No query activity has been recorded yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

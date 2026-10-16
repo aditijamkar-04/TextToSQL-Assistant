@@ -1,0 +1,298 @@
+
+{% extends "base.html" %}
+
+{% block title %}Sign In | Text-to-SQL Assistant{% endblock %}
+
+{% block content %}
+
+<section class="card signin-card">
+
+    <div class="signin-header">
+        <h1>Sign In</h1>
+        <p class="muted">
+            Sign in to access your role-specific dashboard.
+        </p>
+    </div>
+
+    <!-- Lockout countdown -->
+    {% set seconds_left = remaining_seconds | default(0, true) | int %}
+
+    <div
+        id="lockout-message"
+        role="status"
+        aria-live="polite"
+        data-remaining="{{ [seconds_left, 0] | max }}"
+        {% if seconds_left <= 0 %}hidden{% endif %}
+        class="lockout-message"
+    >
+        <strong>Too many sign-in attempts.</strong>
+
+        <p id="lockout-text">
+            Please wait
+            <span id="countdown-seconds">{{ [seconds_left, 0] | max }}</span>
+            seconds before trying again.
+        </p>
+    </div>
+
+    <!-- Sign-in form -->
+    <form method="POST" id="signin-form">
+
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="{{ csrf_token() }}"
+        >
+
+        <div class="form-group">
+            <label for="username">Username</label>
+
+            <input
+                id="username"
+                name="username"
+                type="text"
+                minlength="3"
+                maxlength="50"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                required
+                {% if seconds_left > 0 %}disabled{% endif %}
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+
+            <input
+                id="password"
+                type="password"
+                name="password"
+                autocomplete="current-password"
+                required
+                {% if seconds_left > 0 %}disabled{% endif %}
+            >
+        </div>
+
+        <button
+            type="submit"
+            id="signin-button"
+            class="signin-button"
+            {% if seconds_left > 0 %}disabled{% endif %}
+        >
+            Sign In
+        </button>
+
+    </form>
+
+    <p class="register-prompt">
+        New user?
+        <a href="{{ url_for('register') }}">Register here</a>.
+    </p>
+
+</section>
+
+<style>
+/* Sign-in page */
+.signin-card {
+    width: 100%;
+    max-width: 460px;
+    margin: 32px auto;
+    padding: 32px;
+    border-radius: 16px;
+}
+
+.signin-header {
+    margin-bottom: 24px;
+}
+
+.signin-header h1 {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+
+.signin-header p {
+    margin-top: 0;
+    line-height: 1.6;
+}
+
+.signin-card .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.signin-card label {
+    font-weight: 600;
+}
+
+.signin-card input:not([type="hidden"]) {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 13px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 8px;
+    background: var(--input-bg, var(--card-bg, #ffffff));
+    color: var(--text-color, #1e293b);
+    font: inherit;
+}
+
+.signin-card input:focus {
+    outline: 2px solid var(--accent-color, #64748b);
+    outline-offset: 2px;
+}
+
+.signin-card input:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.signin-button {
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-color, #334155);
+    color: var(--button-text-color, #ffffff);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.signin-button:hover:not(:disabled) {
+    opacity: 0.88;
+}
+
+.signin-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.lockout-message {
+    margin-bottom: 20px;
+    padding: 14px;
+    border: 1px solid #e5a4a4;
+    border-radius: 8px;
+    background: #fff0f0;
+    color: #8b1e1e;
+}
+
+.lockout-message p {
+    margin: 6px 0 0;
+    line-height: 1.5;
+}
+
+.lockout-message[hidden] {
+    display: none;
+}
+
+.register-prompt {
+    margin-top: 22px;
+    text-align: center;
+}
+
+.register-prompt a {
+    color: var(--accent-color, #334155);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+    .signin-card {
+        margin: 16px auto;
+        padding: 22px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .signin-button {
+        transition: none;
+    }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const message = document.getElementById("lockout-message");
+    const countdownText = document.getElementById("countdown-seconds");
+    const lockoutText = document.getElementById("lockout-text");
+    const signinButton = document.getElementById("signin-button");
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+    const signinForm = document.getElementById("signin-form");
+
+    if (
+        !message ||
+        !countdownText ||
+        !lockoutText ||
+        !signinButton ||
+        !usernameInput ||
+        !passwordInput ||
+        !signinForm
+    ) {
+        return;
+    }
+
+    let remaining = Number(message.dataset.remaining || 0);
+    let countdownTimer = null;
+
+    function setFormDisabled(disabled) {
+        signinButton.disabled = disabled;
+        usernameInput.disabled = disabled;
+        passwordInput.disabled = disabled;
+    }
+
+    function finishCountdown() {
+        if (countdownTimer !== null) {
+            window.clearTimeout(countdownTimer);
+            countdownTimer = null;
+        }
+
+        remaining = 0;
+        countdownText.textContent = "0";
+
+        lockoutText.textContent =
+            "The countdown has ended. You can try signing in again.";
+
+        setFormDisabled(false);
+    }
+
+    function updateCountdown() {
+        countdownText.textContent = String(remaining);
+
+        if (remaining <= 0) {
+            finishCountdown();
+            return;
+        }
+
+        countdownTimer = window.setTimeout(function () {
+            remaining -= 1;
+            updateCountdown();
+        }, 1000);
+    }
+
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+        message.hidden = true;
+        setFormDisabled(false);
+    } else {
+        message.hidden = false;
+        setFormDisabled(true);
+        updateCountdown();
+    }
+
+    signinForm.addEventListener("submit", function (event) {
+        if (remaining > 0) {
+            event.preventDefault();
+            return;
+        }
+
+        signinButton.disabled = true;
+        signinButton.textContent = "Signing In...";
+    });
+});
+</script>
+
+{% endblock %}

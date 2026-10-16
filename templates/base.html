@@ -1,0 +1,1220 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+
+    <title>{% block title %}AI Text-to-SQL Assistant{% endblock %}</title>
+
+    <style>
+        /* =========================================
+           1. RESET AND THEME VARIABLES
+        ========================================= */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        :root,
+        html[data-theme="light"] {
+            color-scheme: light;
+            --bg: #f3f6fb;
+            --surface: #ffffff;
+            --surface-alt: #eaf0f8;
+            --text: #1e293b;
+            --muted: #526176;
+            --border: #dbe3ef;
+            --primary: #173b6c;
+            --primary-hover: #24528c;
+            --input-bg: #ffffff;
+            --code-bg: #f1f5f9;
+            --shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            --link: #174f96;
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #0b1220;
+            --surface: #151f30;
+            --surface-alt: #202d42;
+            --text: #e5edf8;
+            --muted: #b8c5d8;
+            --border: #344258;
+            --primary: #7eafff;
+            --primary-hover: #a0c4ff;
+            --input-bg: #101a2a;
+            --code-bg: #0d1727;
+            --shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+            --link: #a8caff;
+        }
+
+        html[data-theme="read"] {
+            color-scheme: light;
+            --bg: #f4ecd9;
+            --surface: #fff8e9;
+            --surface-alt: #eee2c9;
+            --text: #352d22;
+            --muted: #594b38;
+            --border: #d8c8aa;
+            --primary: #66502f;
+            --primary-hover: #80653c;
+            --input-bg: #fffdf6;
+            --code-bg: #efe4ce;
+            --shadow: 0 2px 8px rgba(85, 67, 43, 0.08);
+            --link: #65471c;
+        }
+
+        html {
+            min-height: 100%;
+            background: var(--bg);
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* =========================================
+           2. GLOBAL TEXT VISIBILITY
+        ========================================= */
+
+        body,
+        main,
+        .main-area,
+        .authenticated-main,
+        .welcome-layout,
+        .app-layout,
+        .sidebar,
+        .sidebar-profile,
+        .profile-details,
+        .card,
+        .action-card,
+        .empty-state {
+            color: var(--text);
+        }
+
+        h1, h2, h3, h4, h5, h6,
+        p, li, label, legend, summary,
+        figcaption, dt, dd, th, td {
+            color: inherit;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            line-height: 1.3;
+        }
+
+        a {
+            color: var(--link);
+        }
+
+        button, input, textarea, select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        ::selection {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        /* Make regular content readable even if a child
+           template uses inherited or transparent text. */
+
+        html[data-theme="light"] main,
+        html[data-theme="read"] main {
+            -webkit-text-fill-color: var(--text);
+        }
+
+        html[data-theme="light"] main h1,
+        html[data-theme="light"] main h2,
+        html[data-theme="light"] main h3,
+        html[data-theme="light"] main h4,
+        html[data-theme="light"] main h5,
+        html[data-theme="light"] main h6,
+        html[data-theme="light"] main p,
+        html[data-theme="light"] main li,
+        html[data-theme="light"] main label,
+        html[data-theme="light"] main legend,
+        html[data-theme="light"] main summary,
+        html[data-theme="light"] main figcaption,
+        html[data-theme="light"] main dt,
+        html[data-theme="light"] main dd,
+        html[data-theme="light"] main th,
+        html[data-theme="light"] main td,
+        html[data-theme="light"] main span,
+        html[data-theme="light"] main div,
+        html[data-theme="read"] main h1,
+        html[data-theme="read"] main h2,
+        html[data-theme="read"] main h3,
+        html[data-theme="read"] main h4,
+        html[data-theme="read"] main h5,
+        html[data-theme="read"] main h6,
+        html[data-theme="read"] main p,
+        html[data-theme="read"] main li,
+        html[data-theme="read"] main label,
+        html[data-theme="read"] main legend,
+        html[data-theme="read"] main summary,
+        html[data-theme="read"] main figcaption,
+        html[data-theme="read"] main dt,
+        html[data-theme="read"] main dd,
+        html[data-theme="read"] main th,
+        html[data-theme="read"] main td,
+        html[data-theme="read"] main span,
+        html[data-theme="read"] main div {
+            -webkit-text-fill-color: var(--text);
+        }
+
+        /* =========================================
+           3. TOP NAVIGATION
+        ========================================= */
+
+        .topbar {
+            position: relative;
+            z-index: 5;
+            min-height: 72px;
+            padding: 12px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .brand-symbol {
+            color: var(--primary);
+            -webkit-text-fill-color: var(--primary);
+            margin-right: 8px;
+        }
+
+        .topbar-right,
+        .top-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .top-links a {
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .top-links a:hover {
+            color: var(--primary);
+            -webkit-text-fill-color: var(--primary);
+        }
+
+        .theme-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .theme-control select {
+            width: auto;
+            min-width: 112px;
+            margin: 0;
+        }
+
+        /* =========================================
+           4. BUTTONS
+        ========================================= */
+
+        button,
+        .button {
+            display: inline-block;
+            border: 0;
+            border-radius: 7px;
+            padding: 10px 16px;
+            text-decoration: none;
+            text-align: center;
+            background: var(--primary);
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        button:hover,
+        .button:hover {
+            background: var(--primary-hover);
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 3px;
+        }
+
+        button:disabled {
+            opacity: 0.75;
+            cursor: not-allowed;
+        }
+
+        .button-secondary {
+            background: #64748b;
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        .button-danger {
+            background: #a83243;
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        .button-danger:hover {
+            background: #872738;
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        .inline-form {
+            display: inline;
+            margin: 0;
+        }
+
+        .top-links button {
+            margin: 0;
+        }
+
+        /* =========================================
+           5. APPLICATION LAYOUT
+        ========================================= */
+
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 72px);
+        }
+
+        .sidebar {
+            width: 238px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 18px 13px 14px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            transition: width 0.22s ease;
+            overflow: hidden;
+        }
+
+        .sidebar-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 42px;
+            margin-bottom: 22px;
+            padding: 0 3px;
+        }
+
+        .sidebar-heading {
+            margin: 0;
+            color: var(--muted);
+            -webkit-text-fill-color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .sidebar-toggle {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            font-size: 19px;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--surface-alt);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 44px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: var(--surface-alt);
+            color: var(--primary);
+            -webkit-text-fill-color: var(--primary);
+        }
+
+        .nav-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 22px;
+            font-size: 17px;
+        }
+
+        .nav-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .main-area {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .authenticated-main {
+            max-width: 1500px;
+            margin: 28px auto;
+            padding: 0 26px;
+        }
+
+        /* =========================================
+           6. USER PROFILE
+        ========================================= */
+
+        .sidebar-profile {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            margin-top: auto;
+            padding: 16px 5px 4px;
+            border-top: 1px solid var(--border);
+            min-width: 0;
+        }
+
+        .profile-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+            font-weight: 700;
+            font-size: 17px;
+            text-transform: uppercase;
+        }
+
+        .profile-details {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.4;
+        }
+
+        .profile-name {
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            font-size: 14px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .profile-role {
+            margin-top: 3px;
+            color: var(--muted);
+            -webkit-text-fill-color: var(--muted);
+            font-size: 12px;
+        }
+
+        /* =========================================
+           7. COLLAPSIBLE SIDEBAR
+        ========================================= */
+
+        .app-layout.sidebar-collapsed .sidebar {
+            width: 76px;
+            padding-right: 10px;
+            padding-left: 10px;
+        }
+
+        .app-layout.sidebar-collapsed .sidebar-top {
+            justify-content: center;
+        }
+
+        .app-layout.sidebar-collapsed .sidebar-heading,
+        .app-layout.sidebar-collapsed .nav-label,
+        .app-layout.sidebar-collapsed .profile-details {
+            display: none;
+        }
+
+        .app-layout.sidebar-collapsed .sidebar a {
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .app-layout.sidebar-collapsed .sidebar-profile {
+            justify-content: center;
+            padding-right: 0;
+            padding-left: 0;
+        }
+
+        .app-layout.sidebar-collapsed .nav-icon {
+            width: 26px;
+        }
+
+        /* =========================================
+           8. MAIN CONTENT AND CARDS
+        ========================================= */
+
+        main {
+            max-width: 1250px;
+            margin: 28px auto;
+            padding: 0 24px;
+            color: var(--text);
+        }
+
+        .card {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card p,
+        .card li,
+        .card label,
+        .card h1,
+        .card h2,
+        .card h3,
+        .card h4 {
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+        }
+
+        /* =========================================
+           9. FORMS AND INPUTS
+        ========================================= */
+
+        input,
+        textarea,
+        select {
+            max-width: 100%;
+            padding: 11px 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--input-bg);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            margin: 7px 0 14px;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--muted);
+            -webkit-text-fill-color: var(--muted);
+            opacity: 1;
+        }
+
+        input:not([type="checkbox"]):not([type="radio"]) {
+            width: 100%;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        select option {
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        input[type="checkbox"],
+        input[type="radio"] {
+            width: auto;
+            margin-right: 6px;
+            accent-color: var(--primary);
+        }
+
+        input:disabled,
+        textarea:disabled,
+        select:disabled {
+            opacity: 0.75;
+            cursor: not-allowed;
+        }
+
+        /* =========================================
+           10. FLASH MESSAGES
+        ========================================= */
+
+        .flash {
+            padding: 12px 15px;
+            border-radius: 7px;
+            margin-bottom: 12px;
+        }
+
+        .flash.error {
+            background: #fee2e2;
+            color: #991b1b;
+            -webkit-text-fill-color: #991b1b;
+        }
+
+        .flash.success {
+            background: #dcfce7;
+            color: #166534;
+            -webkit-text-fill-color: #166534;
+        }
+
+        .flash.warning {
+            background: #fef3c7;
+            color: #92400e;
+            -webkit-text-fill-color: #92400e;
+        }
+
+        /* =========================================
+           11. MUTED TEXT AND CODE
+        ========================================= */
+
+        .muted,
+        .ud-muted {
+            color: var(--muted);
+            -webkit-text-fill-color: var(--muted);
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        code {
+            color: inherit;
+            -webkit-text-fill-color: currentColor;
+        }
+
+        /* =========================================
+           12. TABLES
+        ========================================= */
+
+        .table-wrapper,
+        .ud-table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 11px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+        }
+
+        th {
+            background: var(--surface-alt);
+            font-weight: 700;
+        }
+
+        tbody tr:hover {
+            background: var(--surface-alt);
+        }
+
+        /* =========================================
+           13. WELCOME PAGE
+        ========================================= */
+
+        .welcome-layout {
+            max-width: 900px;
+            margin: 55px auto;
+        }
+
+        .welcome-layout h1 {
+            font-size: clamp(30px, 5vw, 46px);
+            margin-bottom: 12px;
+        }
+
+        /* =========================================
+           14. DASHBOARD COMPONENTS
+        ========================================= */
+
+        .dashboard-header,
+        .section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .dashboard-header {
+            margin-bottom: 24px;
+        }
+
+        .dashboard-header h1 {
+            margin-bottom: 6px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .stat-card {
+            min-width: 0;
+            margin-bottom: 0;
+        }
+
+        .stat-card h2 {
+            margin: 6px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .stat-icon,
+        .action-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: var(--surface-alt);
+            color: var(--primary);
+            -webkit-text-fill-color: var(--primary);
+            font-size: 24px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .action-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+            text-decoration: none;
+        }
+
+        .action-card:hover {
+            background: var(--surface-alt);
+        }
+
+        .section-heading {
+            margin-bottom: 18px;
+        }
+
+        .section-heading h2,
+        .section-heading p {
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+            -webkit-text-fill-color: #166534;
+        }
+
+        .status-other {
+            background: var(--surface-alt);
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+        }
+
+        .empty-state {
+            padding: 30px 12px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 32px;
+            color: var(--primary);
+            -webkit-text-fill-color: var(--primary);
+        }
+
+        /* =========================================
+           15. THEME VISIBILITY AND CHILD TEMPLATES
+        ========================================= */
+
+        /* These rules target common child-template content
+           while leaving links, buttons, muted text and alerts
+           with their own intended colors. */
+
+        html[data-theme="light"] main h1,
+        html[data-theme="light"] main h2,
+        html[data-theme="light"] main h3,
+        html[data-theme="light"] main h4,
+        html[data-theme="light"] main p,
+        html[data-theme="light"] main li,
+        html[data-theme="light"] main label,
+        html[data-theme="light"] main td,
+        html[data-theme="light"] main th,
+        html[data-theme="read"] main h1,
+        html[data-theme="read"] main h2,
+        html[data-theme="read"] main h3,
+        html[data-theme="read"] main h4,
+        html[data-theme="read"] main p,
+        html[data-theme="read"] main li,
+        html[data-theme="read"] main label,
+        html[data-theme="read"] main td,
+        html[data-theme="read"] main th {
+            opacity: 1;
+        }
+
+        html[data-theme="light"] main .muted,
+        html[data-theme="light"] main .ud-muted {
+            color: #526176;
+            -webkit-text-fill-color: #526176;
+        }
+
+        html[data-theme="read"] main .muted,
+        html[data-theme="read"] main .ud-muted {
+            color: #594b38;
+            -webkit-text-fill-color: #594b38;
+        }
+
+        html[data-theme="light"] .sidebar a,
+        html[data-theme="light"] .profile-name {
+            color: #1e293b;
+            -webkit-text-fill-color: #1e293b;
+        }
+
+        html[data-theme="read"] .sidebar a,
+        html[data-theme="read"] .profile-name {
+            color: #352d22;
+            -webkit-text-fill-color: #352d22;
+        }
+
+        html[data-theme="light"] .sidebar a:hover,
+        html[data-theme="light"] .sidebar a.active {
+            color: #173b6c;
+            -webkit-text-fill-color: #173b6c;
+        }
+
+        html[data-theme="read"] .sidebar a:hover,
+        html[data-theme="read"] .sidebar a.active {
+            color: #66502f;
+            -webkit-text-fill-color: #66502f;
+        }
+
+        /* Keep button text white across themes. */
+
+        button,
+        button *,
+        .button,
+        .button * {
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+        }
+
+        /* Preserve alert text colors. */
+
+        .flash.error,
+        .flash.error * {
+            color: #991b1b;
+            -webkit-text-fill-color: #991b1b;
+        }
+
+        .flash.success,
+        .flash.success * {
+            color: #166534;
+            -webkit-text-fill-color: #166534;
+        }
+
+        .flash.warning,
+        .flash.warning * {
+            color: #92400e;
+            -webkit-text-fill-color: #92400e;
+        }
+
+        /* =========================================
+           16. RESPONSIVE LAYOUT
+        ========================================= */
+
+        @media (max-width: 760px) {
+            .topbar {
+                padding: 12px 14px;
+            }
+
+            .topbar-right {
+                gap: 8px;
+            }
+
+            .sidebar {
+                width: 205px;
+            }
+
+            .app-layout.sidebar-collapsed .sidebar {
+                width: 65px;
+            }
+
+            .authenticated-main {
+                margin: 20px auto;
+                padding: 0 14px;
+            }
+
+            .card {
+                padding: 17px;
+            }
+
+            .theme-control {
+                gap: 5px;
+            }
+
+            .theme-control select {
+                min-width: 95px;
+            }
+
+            .dashboard-grid,
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 430px) {
+            .brand {
+                font-size: 16px;
+            }
+
+            .topbar {
+                align-items: flex-start;
+            }
+
+            .topbar-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            main {
+                padding: 0 14px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <a class="brand"
+       href="{% if session.get('user_id') %}{% if session.get('role') == 'admin' %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('user_home') }}{% endif %}{% else %}{{ url_for('welcome') }}{% endif %}">
+        <span class="brand-symbol">◆</span>
+        AI Text-to-SQL Assistant
+    </a>
+
+    <div class="topbar-right">
+        <label class="theme-control" for="themeSelect">
+            Theme
+            <select id="themeSelect" aria-label="Choose appearance theme">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="read">Read mode</option>
+            </select>
+        </label>
+
+        <div class="top-links">
+            {% if session.get('user_id') %}
+                <form class="inline-form"
+                      method="POST"
+                      action="{{ url_for('logout') }}">
+                    <input type="hidden"
+                           name="csrf_token"
+                           value="{{ csrf_token() }}">
+                    <button class="button-danger" type="submit">
+                        Exit / Sign Out
+                    </button>
+                </form>
+            {% else %}
+                <a href="{{ url_for('signin') }}">Sign In</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+{% if session.get('user_id') %}
+<div class="app-layout" id="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <p class="sidebar-heading">Workspace</p>
+
+            <button type="button"
+                    id="sidebar-toggle"
+                    class="sidebar-toggle"
+                    aria-label="Collapse sidebar"
+                    aria-expanded="true"
+                    title="Collapse sidebar">
+                ☰
+            </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            {% if session.get('role') == 'admin' %}
+
+                <a href="{{ url_for('admin_dashboard') }}" title="Home">
+                    <span class="nav-icon" aria-hidden="true">⌂</span>
+                    <span class="nav-label">Home</span>
+                </a>
+
+                <a href="{{ url_for('admin_dashboard') }}" title="Dashboards">
+                    <span class="nav-icon" aria-hidden="true">▦</span>
+                    <span class="nav-label">Dashboards</span>
+                </a>
+
+                <a href="{{ url_for('admin_users') }}" title="Manage Users">
+                    <span class="nav-icon" aria-hidden="true">☻</span>
+                    <span class="nav-label">Manage Users</span>
+                </a>
+
+            {% else %}
+
+                <a href="{{ url_for('user_home') }}" title="Home">
+                    <span class="nav-icon" aria-hidden="true">⌂</span>
+                    <span class="nav-label">Home</span>
+                </a>
+
+                <a href="{{ url_for('user_home') }}" title="Dashboards">
+                    <span class="nav-icon" aria-hidden="true">▦</span>
+                    <span class="nav-label">Dashboards</span>
+                </a>
+
+                <a href="{{ url_for('data_sources') }}" title="Data Sources">
+                    <span class="nav-icon" aria-hidden="true">⚙</span>
+                    <span class="nav-label">Data Sources</span>
+                </a>
+
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-profile">
+            <div class="profile-icon" aria-hidden="true">
+                {{ session.get('username', 'U')[0]|upper }}
+            </div>
+
+            <div class="profile-details">
+                <span class="profile-name">
+                    {{ session.get('username', 'User') }}
+                </span>
+
+                <span class="profile-role">
+                    {{ session.get('role', 'user')|title }}
+                </span>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-area">
+{% endif %}
+
+<main class="{% if session.get('user_id') %}authenticated-main{% else %}welcome-layout{% endif %}">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+</main>
+
+{% if session.get('user_id') %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+(function () {
+    "use strict";
+
+    /* =========================================
+       THEME SELECTION
+    ========================================= */
+
+    const selector = document.getElementById("themeSelect");
+    const root = document.documentElement;
+    const themeStorageKey = "textToSQLTheme";
+    const allowedThemes = ["light", "dark", "read"];
+
+    function applyTheme(theme, save = true) {
+        const selected = allowedThemes.includes(theme)
+            ? theme
+            : "light";
+
+        root.setAttribute("data-theme", selected);
+
+        if (selector) {
+            selector.value = selected;
+        }
+
+        if (save) {
+            try {
+                localStorage.setItem(themeStorageKey, selected);
+            } catch (error) {
+                // Theme still applies to the current page.
+            }
+        }
+    }
+
+    let savedTheme = "light";
+
+    try {
+        savedTheme = localStorage.getItem(themeStorageKey) || "light";
+    } catch (error) {
+        // Use Light mode if browser storage is unavailable.
+    }
+
+    applyTheme(savedTheme, false);
+
+    if (selector) {
+        selector.addEventListener("change", function () {
+            applyTheme(selector.value);
+        });
+    }
+
+    /* =========================================
+       SIDEBAR COLLAPSE / EXPAND
+    ========================================= */
+
+    const toggle = document.getElementById("sidebar-toggle");
+    const layout = document.getElementById("app-layout");
+    const sidebarStorageKey = "textToSQLSidebarCollapsed";
+
+    if (toggle && layout) {
+        let collapsed = false;
+
+        try {
+            collapsed =
+                localStorage.getItem(sidebarStorageKey) === "true";
+        } catch (error) {
+            // Default to expanded.
+        }
+
+        function setSidebarCollapsed(value) {
+            layout.classList.toggle("sidebar-collapsed", value);
+
+            toggle.setAttribute("aria-expanded", String(!value));
+            toggle.setAttribute(
+                "aria-label",
+                value ? "Expand sidebar" : "Collapse sidebar"
+            );
+
+            toggle.title = value
+                ? "Expand sidebar"
+                : "Collapse sidebar";
+
+            try {
+                localStorage.setItem(
+                    sidebarStorageKey,
+                    String(value)
+                );
+            } catch (error) {
+                // Sidebar still works on this page.
+            }
+        }
+
+        setSidebarCollapsed(collapsed);
+
+        toggle.addEventListener("click", function () {
+            collapsed = !layout.classList.contains("sidebar-collapsed");
+            setSidebarCollapsed(collapsed);
+        });
+    }
+})();
+</script>
+
+</body>
+</html>
