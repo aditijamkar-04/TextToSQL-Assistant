@@ -5,7 +5,12 @@ import requests
 from sql_service import execute_sql
 
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+import os
+
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://localhost:11434/api/generate",
+).strip()
 MODEL = "qwen2.5-coder:3b"
 
 
