@@ -1,4 +1,4 @@
-﻿
+
 {% extends "base.html" %}
 {% block title %}User Workspace | Text-to-SQL Assistant{% endblock %}
 
@@ -829,7 +829,7 @@ html[data-theme="reading"] .ud-page {
     <!-- Welcome -->
     <header class="ud-heading">
         <div class="ud-welcome">
-            <div class="ud-welcome-icon" aria-hidden="true">âœ¦</div>
+            <div class="ud-welcome-icon" aria-hidden="true">✦</div>
             <div>
                 <h1>Welcome, {{ session.get('username', 'User') }}!</h1>
                 <p class="ud-muted">
@@ -842,7 +842,7 @@ html[data-theme="reading"] .ud-page {
     <!-- Question workspace -->
     <section class="ud-card" id="query-workspace">
         <div class="ud-card-header">
-            <div class="ud-card-icon" aria-hidden="true">âœ§</div>
+            <div class="ud-card-icon" aria-hidden="true">✧</div>
             <div>
                 <h2>Ask Your Database</h2>
                 <p class="ud-muted">
@@ -867,11 +867,11 @@ html[data-theme="reading"] .ud-page {
 
             <div class="ud-actions">
                 <button class="ud-btn ud-primary" type="submit" id="ask-button">
-                    â–¶ Ask &amp; Run SQL
+                    ▶ Ask &amp; Run SQL
                 </button>
 
                 <button class="ud-btn ud-secondary" type="button" id="clear-query">
-                    â†º Clear
+                    ↺ Clear
                 </button>
             </div>
         </form>
@@ -929,7 +929,7 @@ html[data-theme="reading"] .ud-page {
             <div class="ud-result-actions">
                 <span class="ud-badge">SQL Server</span>
                 <button class="ud-btn ud-secondary" type="button" id="copy-sql">
-                    â–£ Copy SQL
+                    ▣ Copy SQL
                 </button>
 
                 <button
@@ -972,7 +972,7 @@ html[data-theme="reading"] .ud-page {
                 type="button"
                 id="copy-explanation"
                 disabled>
-                â–£ Copy Explanation
+                ▣ Copy Explanation
             </button>
         </div>
 
@@ -1001,7 +1001,7 @@ html[data-theme="reading"] .ud-page {
         <div class="ud-section-heading">
             <div>
                 <div class="ud-heading-title">
-                    <span class="ud-mini-icon" aria-hidden="true">â–¦</span>
+                    <span class="ud-mini-icon" aria-hidden="true">▦</span>
                     <h2>Query Results</h2>
                 </div>
                 <p class="ud-muted">
@@ -1010,7 +1010,7 @@ html[data-theme="reading"] .ud-page {
             </div>
 
             {% if result.columns %}
-            <span class="ud-badge ud-badge-success">â— Results received</span>
+            <span class="ud-badge ud-badge-success">● Results received</span>
             {% endif %}
         </div>
 
@@ -1019,19 +1019,19 @@ html[data-theme="reading"] .ud-page {
         <!-- Result statistics -->
         <div class="ud-stats">
             <div class="ud-stat">
-                <div class="ud-stat-label">â–¤ Rows returned</div>
+                <div class="ud-stat-label">▤ Rows returned</div>
                 <div class="ud-stat-value">{{ result.rows|length }}</div>
                 <div class="ud-stat-note">Records in this result</div>
             </div>
 
             <div class="ud-stat">
-                <div class="ud-stat-label">â–¥ Columns</div>
+                <div class="ud-stat-label">▥ Columns</div>
                 <div class="ud-stat-value">{{ result.columns|length }}</div>
                 <div class="ud-stat-note">Fields returned by SQL</div>
             </div>
 
             <div class="ud-stat">
-                <div class="ud-stat-label">âœ“ Execution</div>
+                <div class="ud-stat-label">✓ Execution</div>
                 <div class="ud-stat-value" style="color:var(--ud-success)">
                     Complete
                 </div>
@@ -1042,7 +1042,7 @@ html[data-theme="reading"] .ud-page {
         <!-- Search and actions -->
         <div class="ud-table-toolbar">
             <div class="ud-search-wrap">
-                <span class="ud-search-icon" aria-hidden="true">âŒ•</span>
+                <span class="ud-search-icon" aria-hidden="true">⌕</span>
                 <input
                     type="search"
                     id="result-search"
@@ -1053,10 +1053,10 @@ html[data-theme="reading"] .ud-page {
 
             <div class="ud-result-actions">
                 <button class="ud-btn ud-secondary" type="button" id="toggle-chart">
-                    â–¥ Visualize
+                    ▥ Visualize
                 </button>
                 <button class="ud-btn ud-primary" type="button" id="export-csv">
-                    â†“ Download CSV
+                    ↓ Download CSV
                 </button>
             </div>
         </div>
@@ -1074,7 +1074,7 @@ html[data-theme="reading"] .ud-page {
                                 data-column="{{ loop.index0 }}"
                                 aria-label="Sort by {{ column }}">
                                 {{ column }}
-                                <span class="ud-sort-indicator" aria-hidden="true">â†•</span>
+                                <span class="ud-sort-indicator" aria-hidden="true">↕</span>
                             </button>
                         </th>
                         {% endfor %}
@@ -1423,7 +1423,7 @@ html[data-theme="reading"] .ud-page {
                     }
                 }
 
-                copyExplanationButton.textContent = "âœ“ Copied";
+                copyExplanationButton.textContent = "✓ Copied";
 
                 if (copyExplanationFeedback) {
                     copyExplanationFeedback.textContent =
@@ -1432,7 +1432,7 @@ html[data-theme="reading"] .ud-page {
 
                 window.setTimeout(function () {
                     copyExplanationButton.textContent =
-                        "â–£ Copy Explanation";
+                        "▣ Copy Explanation";
                 }, 1800);
 
             } catch (error) {
@@ -1592,14 +1592,14 @@ html[data-theme="reading"] .ud-page {
                     }
                 }
 
-                copyButton.textContent = "âœ“ Copied";
+                copyButton.textContent = "✓ Copied";
 
                 if (copyFeedback) {
                     copyFeedback.textContent = "SQL copied to your clipboard.";
                 }
 
                 window.setTimeout(function () {
-                    copyButton.textContent = "â–£ Copy SQL";
+                    copyButton.textContent = "▣ Copy SQL";
                 }, 1800);
 
             } catch (error) {
@@ -1713,13 +1713,13 @@ html[data-theme="reading"] .ud-page {
             });
 
             table.querySelectorAll(".ud-sort-indicator").forEach(function (item) {
-                item.textContent = "â†•";
+                item.textContent = "↕";
             });
 
             const indicator = button.querySelector(".ud-sort-indicator");
 
             if (indicator) {
-                indicator.textContent = sortState.ascending ? "â†‘" : "â†“";
+                indicator.textContent = sortState.ascending ? "↑" : "↓";
             }
 
             updateVisibleRows();
@@ -1740,7 +1740,7 @@ html[data-theme="reading"] .ud-page {
                 const button = th.querySelector(".ud-sort");
 
                 return button
-                    ? button.innerText.replace(/[â†•â†‘â†“]/g, "").trim()
+                    ? button.innerText.replace(/[↕↑↓]/g, "").trim()
                     : th.innerText.trim();
             });
 
@@ -1831,7 +1831,7 @@ html[data-theme="reading"] .ud-page {
         const button = th.querySelector(".ud-sort");
 
         return button
-            ? button.innerText.replace(/[â†•â†‘â†“]/g, "").trim()
+            ? button.innerText.replace(/[↕↑↓]/g, "").trim()
             : th.innerText.trim();
     });
 
@@ -1843,7 +1843,7 @@ html[data-theme="reading"] .ud-page {
         }
 
         text = text
-            .replace(/[â‚¹$â‚¬Â£,\s]/g, "")
+            .replace(/[₹$€£,\s]/g, "")
             .replace(/%$/, "");
 
         if (!/^-?\d+(\.\d+)?$/.test(text)) {
@@ -2209,7 +2209,7 @@ html[data-theme="reading"] .ud-page {
                                     const point = context.raw;
 
                                     return point.recordLabel +
-                                        " â€” (" +
+                                        " — (" +
                                         point.x +
                                         ", " +
                                         point.y +
@@ -2236,24 +2236,24 @@ html[data-theme="reading"] .ud-page {
 
             showChartMessage(
                 typeLabel +
-                " Â· X: " +
+                " · X: " +
                 (numericCategory
                     ? headers[categoryIndex]
                     : "Record Number") +
-                " Â· Y: " +
+                " · Y: " +
                 selectedNumeric.name +
-                " Â· " +
+                " · " +
                 scatterPoints.length +
                 " points plotted."
             );
         } else {
             showChartMessage(
                 typeLabel +
-                " Â· Category: " +
+                " · Category: " +
                 headers[categoryIndex] +
-                " Â· Values: " +
+                " · Values: " +
                 selectedNumeric.name +
-                " Â· " +
+                " · " +
                 entries.length +
                 " plotted categories."
             );
@@ -2266,7 +2266,7 @@ html[data-theme="reading"] .ud-page {
 
         toggleChart.textContent = open
             ? "Hide visualization"
-            : "â–¥ Visualize";
+            : "▥ Visualize";
 
         if (open) {
             renderChart();

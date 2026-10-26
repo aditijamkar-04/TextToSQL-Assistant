@@ -1,4 +1,4 @@
-﻿
+
 {% extends "base.html" %}
 {% block title %}Data Sources{% endblock %}
 
@@ -608,7 +608,7 @@
 
                 table.columns.forEach(function (column) {
                     const item = document.createElement("li");
-                    item.textContent = column.name + " â€” " + column.type;
+                    item.textContent = column.name + " — " + column.type;
                     list.appendChild(item);
                 });
 

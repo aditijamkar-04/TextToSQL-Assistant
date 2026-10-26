@@ -1,4 +1,4 @@
-﻿
+
 <!DOCTYPE html>
 <html lang="en"
       data-theme="light"
@@ -1185,7 +1185,7 @@
 <header class="topbar">
     <a class="brand"
        href="{% if session.get('user_id') %}{% if session.get('role') == 'admin' %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('user_home') }}{% endif %}{% else %}{{ url_for('welcome') }}{% endif %}">
-        <span class="brand-symbol">âœ¦</span>
+        <span class="brand-symbol">&#10022;</span>
         AI Text-to-SQL Assistant
     </a>
 
@@ -1232,7 +1232,7 @@
                     aria-label="Collapse sidebar"
                     aria-expanded="true"
                     title="Collapse sidebar">
-                â˜°
+                ☰
             </button>
         </div>
 
@@ -1240,53 +1240,53 @@
             {% if session.get('role') == 'admin' %}
 
                 <a href="{{ url_for('admin_dashboard') }}" title="Home">
-                    <span class="nav-icon" aria-hidden="true">âŒ‚</span>
+                    <span class="nav-icon" aria-hidden="true">⌂</span>
                     <span class="nav-label">Home</span>
                 </a>
 
                 <a href="{{ url_for('admin_dashboard') }}" title="Dashboards">
-                    <span class="nav-icon" aria-hidden="true">â–¦</span>
+                    <span class="nav-icon" aria-hidden="true">▦</span>
                     <span class="nav-label">Dashboards</span>
                 </a>
 
                 <a href="{{ url_for('admin_dashboard', panel='feedback') }}"
                     title="User Feedback">
-                    <span class="nav-icon" aria-hidden="true">ðŸ’¬</span>
+                    <span class="nav-icon" aria-hidden="true">💬</span>
                     <span class="nav-label">User Feedback</span>
                 </a>
 
 
                 <a href="{{ url_for('admin_users') }}" title="Manage Users">
-                    <span class="nav-icon" aria-hidden="true">â˜»</span>
+                    <span class="nav-icon" aria-hidden="true">☻</span>
                     <span class="nav-label">Manage Users</span>
                 </a>
 
             {% else %}
 
                 <a href="{{ url_for('user_home') }}" title="Home">
-                    <span class="nav-icon" aria-hidden="true">âŒ‚</span>
+                    <span class="nav-icon" aria-hidden="true">⌂</span>
                     <span class="nav-label">Home</span>
                 </a>
 
                 <a href="{{ url_for('user_home') }}" title="Dashboards">
-                    <span class="nav-icon" aria-hidden="true">â–¦</span>
+                    <span class="nav-icon" aria-hidden="true">▦</span>
                     <span class="nav-label">Dashboards</span>
                 </a>
 
                 <a href="{{ url_for('data_sources') }}" title="Data Sources">
-                    <span class="nav-icon" aria-hidden="true">âš™</span>
+                    <span class="nav-icon" aria-hidden="true">⚙</span>
                     <span class="nav-label">Data Sources</span>
                 </a>
 
                 <a href="{{ url_for('user_home', panel='feedback') }}"
                     title="User Feedback">
-                    <span class="nav-icon" aria-hidden="true">ðŸ’¬</span>
+                    <span class="nav-icon" aria-hidden="true">💬</span>
                     <span class="nav-label">User Feedback</span>
                 </a>
 
                 <a href="{{ url_for('user_home', panel='conversations') }}"
                     title="My Feedback & Admin Replies">
-                    <span class="nav-icon" aria-hidden="true">â†”</span>
+                    <span class="nav-icon" aria-hidden="true">↔</span>
                     <span class="nav-label">My Feedback & Admin Replies</span>
                 </a>
 
