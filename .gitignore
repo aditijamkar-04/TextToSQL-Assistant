@@ -42,3 +42,6 @@ migration_work/
 setup_admin.py
 debug_validator.py
 test_workspace_commit_debug.py
+auth_db_before_neon.py.bak
+
+app_before_render_fixes.py.bak

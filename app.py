@@ -1,4 +1,4 @@
-﻿
+
 import os
 import sqlite3
 from functools import wraps
@@ -140,15 +140,6 @@ def welcome():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # Disable new registrations on the hosted demo.
-    # Local registration remains available.
-    if os.getenv("DEMO_MODE", "0").strip() == "1":
-        flash(
-            "Registration is disabled in the hosted demo.",
-            "info",
-        )
-        return redirect(url_for("signin"))
-
     if session.get("user_id"):
         if session.get("role") == "admin":
             return redirect(url_for("admin_dashboard"))
@@ -179,7 +170,8 @@ def register():
                 # Create a private SQL Server workspace
                 # for the newly registered user.
                 try:
-                    provision_user_workspace(user_id)
+                    if os.getenv("DEMO_MODE", "0").strip() != "1":
+                        provision_user_workspace(user_id)
 
                 except Exception:
                     app.logger.exception(
@@ -267,7 +259,10 @@ def signin():
 
         if user:
             # Only ordinary users require a private SQL workspace.
-            if user["role"] == "user":
+            if (
+                user["role"] == "user"
+                and os.getenv("DEMO_MODE", "0").strip() != "1"
+            ):
                 try:
                     workspace = get_workspace_credentials(
                         user["user_id"]
@@ -433,6 +428,14 @@ def user_dashboard():
 @app.route("/ask", methods=["POST"])
 @role_required("user")
 def ask():
+
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        flash(
+            "Hosted demo mode is active. Real AI generation "
+            "and database execution are disabled.",
+            "info",
+        )
+        return redirect(url_for("user_home"))
 
     # Check workspace readiness for every SQL request.
     user_id = session["user_id"]
@@ -931,6 +934,9 @@ def workspace_create_table():
 @app.route("/workspace/my-tables", methods=["GET"])
 @role_required("user")
 def workspace_my_tables():
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {"error": "Table listing is disabled in demo mode."}, 403
+
     try:
         tables = list_workspace_tables(session["user_id"])
         return {"tables": tables}, 200
@@ -994,6 +1000,9 @@ def workspace_insert_record():
 @app.route("/workspace/view-records", methods=["GET"])
 @role_required("user")
 def workspace_view_records():
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {"error": "Record viewing is disabled in demo mode."}, 403
+
 
     table_name = request.args.get("table", "")
 
@@ -1028,6 +1037,9 @@ def workspace_view_records():
 @app.route("/workspace/record-keys", methods=["GET"])
 @role_required("user")
 def workspace_record_keys():
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {"error": "Primary key lookup is disabled in demo mode."}, 403
+
     try:
         return get_workspace_record_keys(
             session["user_id"],
