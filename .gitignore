@@ -1,35 +1,44 @@
-﻿.env
+﻿# Environment variables and secrets
+.env
 .env.*
 !.env.example
 
+# Python virtual environment
 .venv/
+venv/
+
+# Python cache
 __pycache__/
 *.py[cod]
 
+# Local databases
 instance/
 *.db
 *.sqlite
 *.sqlite3
 
+# Testing and coverage
 .pytest_cache/
 .coverage
 
-# Local backups and development-only scripts
-app_backup_before_auth.py
-debug_validator.py
-
-# Local administrator setup utility
-setup_admin.py
-
-# Local logs and temporary files
+# Logs and temporary files
 *.log
 *.tmp
 
-# Local backups and development-only scripts
-app_backup_before_auth.py
-debug_validator.py
-setup_admin.py
+# Local backups
+*_backup.py
+*_backup.html
+*_before_*.py
+*_before_*.html
+*.py.bak
+*.py.backup_*
+backup_before_workspace/
+templates/*_backup.html
 
-# Local logs and temporary files
-*.log
-*.tmp
+# Migration experiments
+migration_work/
+
+# Local development utilities
+setup_admin.py
+debug_validator.py
+test_workspace_commit_debug.py

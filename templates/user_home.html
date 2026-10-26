@@ -1,4 +1,4 @@
-
+﻿
 {% extends "base.html" %}
 {% block title %}User Workspace | Text-to-SQL Assistant{% endblock %}
 
@@ -824,11 +824,12 @@ html[data-theme="reading"] .ud-page {
 </style>
 
 <div class="ud-page">
+    {% if active_panel|default('home', true) == 'home' %}
 
     <!-- Welcome -->
     <header class="ud-heading">
         <div class="ud-welcome">
-            <div class="ud-welcome-icon" aria-hidden="true">✦</div>
+            <div class="ud-welcome-icon" aria-hidden="true">âœ¦</div>
             <div>
                 <h1>Welcome, {{ session.get('username', 'User') }}!</h1>
                 <p class="ud-muted">
@@ -841,7 +842,7 @@ html[data-theme="reading"] .ud-page {
     <!-- Question workspace -->
     <section class="ud-card" id="query-workspace">
         <div class="ud-card-header">
-            <div class="ud-card-icon" aria-hidden="true">✧</div>
+            <div class="ud-card-icon" aria-hidden="true">âœ§</div>
             <div>
                 <h2>Ask Your Database</h2>
                 <p class="ud-muted">
@@ -866,11 +867,11 @@ html[data-theme="reading"] .ud-page {
 
             <div class="ud-actions">
                 <button class="ud-btn ud-primary" type="submit" id="ask-button">
-                    ▶ Ask &amp; Run SQL
+                    â–¶ Ask &amp; Run SQL
                 </button>
 
                 <button class="ud-btn ud-secondary" type="button" id="clear-query">
-                    ↺ Clear
+                    â†º Clear
                 </button>
             </div>
         </form>
@@ -928,7 +929,16 @@ html[data-theme="reading"] .ud-page {
             <div class="ud-result-actions">
                 <span class="ud-badge">SQL Server</span>
                 <button class="ud-btn ud-secondary" type="button" id="copy-sql">
-                    ▣ Copy SQL
+                    â–£ Copy SQL
+                </button>
+
+                <button
+                    class="ud-btn ud-secondary"
+                    type="button"
+                    id="toggle-explanation"
+                    aria-expanded="false"
+                    aria-controls="explanation-content">
+                    Explain Query
                 </button>
             </div>
         </div>
@@ -940,12 +950,58 @@ html[data-theme="reading"] .ud-page {
         </p>
     </section>
 
+
+
+
+
+    <!-- Explain generated SQL -->
+    <section class="ud-card" id="query-explanation" hidden>
+        <div class="ud-section-heading">
+            <div>
+                <div class="ud-heading-title">
+                    <span class="ud-mini-icon" aria-hidden="true">?</span>
+                    <h2>Understand This Query</h2>
+                </div>
+                <p class="ud-muted">
+                    Get an explanation tailored to your question and SQL.
+                </p>
+            </div>
+
+            <button
+                class="ud-btn ud-secondary"
+                type="button"
+                id="copy-explanation"
+                disabled>
+                â–£ Copy Explanation
+            </button>
+        </div>
+
+        <div id="explanation-content" hidden>
+            <p id="explanation-status"
+               class="ud-muted"
+               role="status"
+               aria-live="polite"></p>
+
+            <div
+                id="explanation-text"
+                class="ud-muted"
+                style="white-space: pre-wrap; overflow-wrap: anywhere;"></div>
+
+            <p class="ud-shortcut"
+               id="copy-explanation-feedback"
+               aria-live="polite"></p>
+        </div>
+    </section>
+
+
+
+
     <!-- Query results -->
     <section class="ud-card" id="query-results">
         <div class="ud-section-heading">
             <div>
                 <div class="ud-heading-title">
-                    <span class="ud-mini-icon" aria-hidden="true">▦</span>
+                    <span class="ud-mini-icon" aria-hidden="true">â–¦</span>
                     <h2>Query Results</h2>
                 </div>
                 <p class="ud-muted">
@@ -954,7 +1010,7 @@ html[data-theme="reading"] .ud-page {
             </div>
 
             {% if result.columns %}
-            <span class="ud-badge ud-badge-success">● Results received</span>
+            <span class="ud-badge ud-badge-success">â— Results received</span>
             {% endif %}
         </div>
 
@@ -963,19 +1019,19 @@ html[data-theme="reading"] .ud-page {
         <!-- Result statistics -->
         <div class="ud-stats">
             <div class="ud-stat">
-                <div class="ud-stat-label">▤ Rows returned</div>
+                <div class="ud-stat-label">â–¤ Rows returned</div>
                 <div class="ud-stat-value">{{ result.rows|length }}</div>
                 <div class="ud-stat-note">Records in this result</div>
             </div>
 
             <div class="ud-stat">
-                <div class="ud-stat-label">▥ Columns</div>
+                <div class="ud-stat-label">â–¥ Columns</div>
                 <div class="ud-stat-value">{{ result.columns|length }}</div>
                 <div class="ud-stat-note">Fields returned by SQL</div>
             </div>
 
             <div class="ud-stat">
-                <div class="ud-stat-label">✓ Execution</div>
+                <div class="ud-stat-label">âœ“ Execution</div>
                 <div class="ud-stat-value" style="color:var(--ud-success)">
                     Complete
                 </div>
@@ -986,7 +1042,7 @@ html[data-theme="reading"] .ud-page {
         <!-- Search and actions -->
         <div class="ud-table-toolbar">
             <div class="ud-search-wrap">
-                <span class="ud-search-icon" aria-hidden="true">⌕</span>
+                <span class="ud-search-icon" aria-hidden="true">âŒ•</span>
                 <input
                     type="search"
                     id="result-search"
@@ -997,10 +1053,10 @@ html[data-theme="reading"] .ud-page {
 
             <div class="ud-result-actions">
                 <button class="ud-btn ud-secondary" type="button" id="toggle-chart">
-                    ▥ Visualize
+                    â–¥ Visualize
                 </button>
                 <button class="ud-btn ud-primary" type="button" id="export-csv">
-                    ↓ Download CSV
+                    â†“ Download CSV
                 </button>
             </div>
         </div>
@@ -1018,7 +1074,7 @@ html[data-theme="reading"] .ud-page {
                                 data-column="{{ loop.index0 }}"
                                 aria-label="Sort by {{ column }}">
                                 {{ column }}
-                                <span class="ud-sort-indicator" aria-hidden="true">↕</span>
+                                <span class="ud-sort-indicator" aria-hidden="true">â†•</span>
                             </button>
                         </th>
                         {% endfor %}
@@ -1081,9 +1137,7 @@ html[data-theme="reading"] .ud-page {
                     <select id="chart-value" class="ud-select"></select>
                 </div>
 
-                <button class="ud-btn ud-primary" type="button" id="build-chart">
-                    Update Chart
-                </button>
+
             </div>
 
             <div id="chart-message" class="ud-muted" aria-live="polite"></div>
@@ -1141,60 +1195,139 @@ html[data-theme="reading"] .ud-page {
         </p>
         {% endif %}
     </section>
+    {% endif %}
 
-    <!-- Platform information -->
-    <section class="ud-info-section" aria-labelledby="platform-info-title">
-        <h2 id="platform-info-title">Explore the Platform</h2>
+    {% if active_panel == 'feedback' %}
+    <section class="ud-card" style="margin-top: 24px;">
+        <h2>User Feedback</h2>
         <p class="ud-muted">
-            Understand the key parts of your AI-powered data workspace.
+            Help us improve the AI Text-to-SQL Assistant.
+            Your feedback is visible to the administrator.
         </p>
 
-        <div class="ud-info-grid">
-            <article class="ud-info-card">
-                <div class="ud-info-icon" aria-hidden="true">⌂</div>
-                <div>
-                    <h3>Welcome Page</h3>
-                    <p>
-                        Introduction to the assistant, getting started,
-                        and sign-in access.
-                    </p>
-                </div>
-            </article>
+        <form method="POST" action="{{ url_for('feedback') }}">
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
 
-            <article class="ud-info-card">
-                <div class="ud-info-icon" aria-hidden="true">♙</div>
-                <div>
-                    <h3>Sign In</h3>
-                    <p>
-                        Verify credentials securely and determine
-                        the user's application role.
-                    </p>
-                </div>
-            </article>
+            <div>
+                <label class="ud-label" for="feedback-category">
+                    Feedback category
+                </label>
+                <select
+                    id="feedback-category"
+                    name="category"
+                    required
+                    style="width: 100%;"
+                >
+                    <option value="">Select a category</option>
+                    <option value="Suggestion">Suggestion</option>
+                    <option value="Bug Report">Bug Report</option>
+                    <option value="General Feedback">General Feedback</option>
+                </select>
+            </div>
 
-            <article class="ud-info-card">
-                <div class="ud-info-icon" aria-hidden="true">⚙</div>
-                <div>
-                    <h3>Admin Page</h3>
-                    <p>
-                        Manage users, review application activity,
-                        and access authorized administration tools.
-                    </p>
-                </div>
-            </article>
+            <div style="margin-top: 16px;">
+                <label class="ud-label" for="feedback-message">
+                    Your feedback
+                </label>
+                <textarea
+                    id="feedback-message"
+                    name="message"
+                    rows="6"
+                    maxlength="2000"
+                    required
+                    placeholder="Share your suggestion or describe a problem..."
+                    style="width: 100%;"
+                ></textarea>
+            </div>
 
-            <article class="ud-info-card">
-                <div class="ud-info-icon" aria-hidden="true">▤</div>
-                <div>
-                    <h3>User Page</h3>
-                    <p>
-                        Ask questions, generate and run SQL, view results,
-                        visualize data, and download CSV files.
-                    </p>
-                </div>
-            </article>
-        </div>
+            <button type="submit" style="margin-top: 16px;">
+                Submit Feedback
+            </button>
+        </form>
     </section>
+    {% endif %}
+
+
+    {% if active_panel == 'conversations' %}
+    <section class="ud-card" style="margin-top: 24px;">
+        <h2>My Feedback & Admin Replies</h2>
+        <p class="ud-muted">
+            View your feedback and continue the conversation with the administrator.
+        </p>
+
+        {% if feedback_items %}
+            {% for item in feedback_items %}
+                <article style="padding: 16px 0; border-bottom: 1px solid var(--ud-border);">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                        <strong>{{ item.category }}</strong>
+                        <span class="ud-muted">{{ item.created_at }}</span>
+                    </div>
+
+                    <div style="margin-top: 14px; padding: 14px; border: 1px solid var(--ud-border); border-radius: 10px;">
+                        <strong>Your original feedback</strong>
+                        <p style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ item.message }}</p>
+                    </div>
+
+                    {% if item.conversation_messages %}
+                        {% for msg in item.conversation_messages %}
+                            <div style="margin-top: 12px; padding: 14px; background: {% if msg.sender_role == 'admin' %}var(--ud-soft-blue){% else %}var(--ud-card-bg, transparent){% endif %}; border: 1px solid var(--ud-border); border-radius: 10px;">
+                                <div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                                    <strong>
+                                        {% if msg.sender_role == 'admin' %}
+                                            Administrator
+                                        {% else %}
+                                            You
+                                        {% endif %}
+                                    </strong>
+                                    <small class="ud-muted">{{ msg.created_at }}</small>
+                                </div>
+                                <p style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ msg.message }}</p>
+                            </div>
+                        {% endfor %}
+                    {% elif item.admin_reply %}
+                        <div style="margin-top: 12px; padding: 14px; background: var(--ud-soft-blue); border-radius: 10px;">
+                            <strong>Administrator's previous reply</strong>
+                            <p style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ item.admin_reply }}</p>
+                            <small class="ud-muted">Replied: {{ item.replied_at or "Date unavailable" }}</small>
+                        </div>
+                    {% else %}
+                        <p class="ud-muted">Awaiting the administrator's reply.</p>
+                    {% endif %}
+
+                    <form method="POST"
+                          action="{{ url_for('user_feedback_reply', feedback_id=item.feedback_id) }}"
+                          style="margin-top: 16px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label class="ud-label" for="user-reply-{{ item.feedback_id }}">
+                            Your reply
+                        </label>
+                        <textarea
+                            id="user-reply-{{ item.feedback_id }}"
+                            name="message"
+                            rows="3"
+                            maxlength="2000"
+                            required
+                            placeholder="Write a message to the administrator..."
+                            style="width: 100%;"
+                        ></textarea>
+
+                        <button type="submit" style="margin-top: 8px;">
+                            Send Reply
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p class="ud-muted">You haven't submitted any feedback yet.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
 </div>
 
 <!-- Chart.js: client-side chart rendering -->
@@ -1246,6 +1379,191 @@ html[data-theme="reading"] .ud-page {
        2. COPY GENERATED SQL
     ===================================================== */
 
+
+
+
+    // Explain Query: show/hide the complete explanation card
+    const explainButton = document.getElementById("toggle-explanation");
+    const explanationCard = document.getElementById("query-explanation");
+    const explanationContent = document.getElementById("explanation-content");
+    const explanationStatus = document.getElementById("explanation-status");
+    const explanationText = document.getElementById("explanation-text");
+
+
+
+    const copyExplanationButton =
+        document.getElementById("copy-explanation");
+
+    const copyExplanationFeedback =
+        document.getElementById("copy-explanation-feedback");
+
+    if (copyExplanationButton && explanationText) {
+        copyExplanationButton.addEventListener("click", async function () {
+            const text = explanationText.textContent.trim();
+
+            if (!text) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const temp = document.createElement("textarea");
+                    temp.value = text;
+                    temp.style.position = "fixed";
+                    temp.style.left = "-9999px";
+
+                    document.body.appendChild(temp);
+                    temp.select();
+
+                    const copied = document.execCommand("copy");
+                    temp.remove();
+
+                    if (!copied) {
+                        throw new Error("Copy failed");
+                    }
+                }
+
+                copyExplanationButton.textContent = "âœ“ Copied";
+
+                if (copyExplanationFeedback) {
+                    copyExplanationFeedback.textContent =
+                        "Explanation copied to your clipboard.";
+                }
+
+                window.setTimeout(function () {
+                    copyExplanationButton.textContent =
+                        "â–£ Copy Explanation";
+                }, 1800);
+
+            } catch (error) {
+                if (copyExplanationFeedback) {
+                    copyExplanationFeedback.textContent =
+                        "Copy unavailable. Select and copy the explanation manually.";
+                }
+            }
+        });
+    }
+
+
+
+    let explanationLoaded = false;
+    let explanationLoading = false;
+
+    if (
+        explainButton &&
+        explanationCard &&
+        explanationContent &&
+        explanationStatus &&
+        explanationText
+    ) {
+        explainButton.addEventListener("click", async function () {
+            // Hide the entire card when the explanation is already visible.
+            if (!explanationCard.hidden && explanationLoaded) {
+                explanationCard.hidden = true;
+                explainButton.setAttribute("aria-expanded", "false");
+                explainButton.textContent = "Show Explanation";
+                return;
+            }
+
+            if (explanationLoading) return;
+
+            // Reveal the separate explanation box.
+            explanationCard.hidden = false;
+            explanationContent.hidden = false;
+            explainButton.setAttribute("aria-expanded", "true");
+
+            // Reopen an explanation that has already been generated.
+            if (explanationLoaded) {
+                explainButton.textContent = "Hide Explanation";
+                return;
+            }
+
+            const questionField = document.getElementById("question");
+            const sqlCode = document.getElementById("sql-code");
+            const csrfField = document.querySelector(
+                'input[name="csrf_token"]'
+            );
+
+            const questionValue = questionField
+                ? questionField.value.trim()
+                : "";
+            const sqlValue = sqlCode ? sqlCode.textContent.trim() : "";
+            const csrfToken = csrfField ? csrfField.value : "";
+
+            if (!questionValue || !sqlValue || !csrfToken) {
+                explanationStatus.textContent =
+                    "Unable to explain this query. Required information is missing.";
+                explainButton.textContent = "Try Again";
+                return;
+            }
+
+            explanationLoading = true;
+            explanationStatus.textContent =
+                "Generating an explanation for your query...";
+            explanationText.textContent = "";
+            explainButton.disabled = true;
+            explainButton.textContent = "Explaining...";
+
+            try {
+                const response = await fetch("/explain-query", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({
+                        question: questionValue,
+                        sql: sqlValue
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.error || "Unable to generate the explanation."
+                    );
+                }
+
+                if (
+                    typeof data.explanation !== "string" ||
+                    !data.explanation.trim()
+                ) {
+                    throw new Error("The explanation returned was empty.");
+                }
+
+                explanationText.textContent = data.explanation;
+
+                if (copyExplanationButton) {
+                    copyExplanationButton.disabled = false;
+                }
+
+                if (copyExplanationFeedback) {
+                    copyExplanationFeedback.textContent = "";
+                }
+
+                explanationStatus.textContent = "";
+                explanationLoaded = true;
+                explainButton.textContent = "Hide Explanation";
+            } catch (error) {
+                explanationStatus.textContent =
+                    error.message ||
+                    "Unable to generate the explanation. Please try again.";
+                explanationText.textContent = "";
+                explainButton.textContent = "Try Again";
+            } finally {
+                explanationLoading = false;
+                explainButton.disabled = false;
+            }
+        });
+    }
+
+
+
+
+
+
     const copyButton = document.getElementById("copy-sql");
     const sqlCode = document.getElementById("sql-code");
     const copyFeedback = document.getElementById("copy-feedback");
@@ -1274,14 +1592,14 @@ html[data-theme="reading"] .ud-page {
                     }
                 }
 
-                copyButton.textContent = "✓ Copied";
+                copyButton.textContent = "âœ“ Copied";
 
                 if (copyFeedback) {
                     copyFeedback.textContent = "SQL copied to your clipboard.";
                 }
 
                 window.setTimeout(function () {
-                    copyButton.textContent = "▣ Copy SQL";
+                    copyButton.textContent = "â–£ Copy SQL";
                 }, 1800);
 
             } catch (error) {
@@ -1395,13 +1713,13 @@ html[data-theme="reading"] .ud-page {
             });
 
             table.querySelectorAll(".ud-sort-indicator").forEach(function (item) {
-                item.textContent = "↕";
+                item.textContent = "â†•";
             });
 
             const indicator = button.querySelector(".ud-sort-indicator");
 
             if (indicator) {
-                indicator.textContent = sortState.ascending ? "↑" : "↓";
+                indicator.textContent = sortState.ascending ? "â†‘" : "â†“";
             }
 
             updateVisibleRows();
@@ -1422,7 +1740,7 @@ html[data-theme="reading"] .ud-page {
                 const button = th.querySelector(".ud-sort");
 
                 return button
-                    ? button.innerText.replace(/[↕↑↓]/g, "").trim()
+                    ? button.innerText.replace(/[â†•â†‘â†“]/g, "").trim()
                     : th.innerText.trim();
             });
 
@@ -1493,7 +1811,6 @@ html[data-theme="reading"] .ud-page {
     const chartType = document.getElementById("chart-type");
     const categorySelect = document.getElementById("chart-category");
     const valueSelect = document.getElementById("chart-value");
-    const buildChartButton = document.getElementById("build-chart");
     const chartMessage = document.getElementById("chart-message");
     const canvas = document.getElementById("result-chart");
 
@@ -1503,7 +1820,6 @@ html[data-theme="reading"] .ud-page {
         !chartType ||
         !categorySelect ||
         !valueSelect ||
-        !buildChartButton ||
         !canvas
     ) {
         return;
@@ -1515,7 +1831,7 @@ html[data-theme="reading"] .ud-page {
         const button = th.querySelector(".ud-sort");
 
         return button
-            ? button.innerText.replace(/[↕↑↓]/g, "").trim()
+            ? button.innerText.replace(/[â†•â†‘â†“]/g, "").trim()
             : th.innerText.trim();
     });
 
@@ -1527,7 +1843,7 @@ html[data-theme="reading"] .ud-page {
         }
 
         text = text
-            .replace(/[₹$€£,\s]/g, "")
+            .replace(/[â‚¹$â‚¬Â£,\s]/g, "")
             .replace(/%$/, "");
 
         if (!/^-?\d+(\.\d+)?$/.test(text)) {
@@ -1893,7 +2209,7 @@ html[data-theme="reading"] .ud-page {
                                     const point = context.raw;
 
                                     return point.recordLabel +
-                                        " — (" +
+                                        " â€” (" +
                                         point.x +
                                         ", " +
                                         point.y +
@@ -1920,24 +2236,24 @@ html[data-theme="reading"] .ud-page {
 
             showChartMessage(
                 typeLabel +
-                " · X: " +
+                " Â· X: " +
                 (numericCategory
                     ? headers[categoryIndex]
                     : "Record Number") +
-                " · Y: " +
+                " Â· Y: " +
                 selectedNumeric.name +
-                " · " +
+                " Â· " +
                 scatterPoints.length +
                 " points plotted."
             );
         } else {
             showChartMessage(
                 typeLabel +
-                " · Category: " +
+                " Â· Category: " +
                 headers[categoryIndex] +
-                " · Values: " +
+                " Â· Values: " +
                 selectedNumeric.name +
-                " · " +
+                " Â· " +
                 entries.length +
                 " plotted categories."
             );
@@ -1950,14 +2266,13 @@ html[data-theme="reading"] .ud-page {
 
         toggleChart.textContent = open
             ? "Hide visualization"
-            : "▥ Visualize";
+            : "â–¥ Visualize";
 
         if (open) {
             renderChart();
         }
     });
 
-    buildChartButton.addEventListener("click", renderChart);
     chartType.addEventListener("change", renderChart);
     categorySelect.addEventListener("change", renderChart);
     valueSelect.addEventListener("change", renderChart);

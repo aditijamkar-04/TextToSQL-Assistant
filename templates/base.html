@@ -1,6 +1,8 @@
-
+﻿
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en"
+      data-theme="light"
+      class="{% if request.endpoint in ['register', 'signin'] %}hide-auth-scrollbar{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -67,13 +69,19 @@
         }
 
         html {
-            min-height: 100%;
+            width: 100%;
+            height: 100%;
             background: var(--bg);
         }
 
         body {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
             margin: 0;
-            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 15px;
             line-height: 1.6;
@@ -127,9 +135,6 @@
             color: #ffffff;
         }
 
-        /* Make regular content readable even if a child
-           template uses inherited or transparent text. */
-
         html[data-theme="light"] main,
         html[data-theme="read"] main {
             -webkit-text-fill-color: var(--text);
@@ -180,7 +185,8 @@
 
         .topbar {
             position: relative;
-            z-index: 5;
+            z-index: 10;
+            flex: 0 0 auto;
             min-height: 72px;
             padding: 12px 24px;
             background: var(--surface);
@@ -307,23 +313,28 @@
         }
 
         /* =========================================
-           5. APPLICATION LAYOUT
+           5. APPLICATION LAYOUT AND SCROLLING
         ========================================= */
 
         .app-layout {
             display: flex;
-            min-height: calc(100vh - 72px);
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .sidebar {
             width: 238px;
-            flex-shrink: 0;
+            flex: 0 0 238px;
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            min-height: 0;
             padding: 18px 13px 14px;
             background: var(--surface);
             border-right: 1px solid var(--border);
-            transition: width 0.22s ease;
+            transition: width 0.22s ease, flex-basis 0.22s ease;
             overflow: hidden;
         }
 
@@ -333,6 +344,7 @@
             justify-content: space-between;
             gap: 8px;
             min-height: 42px;
+            flex: 0 0 auto;
             margin-bottom: 22px;
             padding: 0 3px;
         }
@@ -370,10 +382,18 @@
             -webkit-text-fill-color: var(--text);
         }
 
+        /* Only the navigation area scrolls inside the sidebar. */
+
         .sidebar-nav {
             display: flex;
             flex-direction: column;
             gap: 5px;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
         }
 
         .sidebar a {
@@ -381,6 +401,7 @@
             align-items: center;
             gap: 12px;
             min-height: 44px;
+            flex: 0 0 auto;
             padding: 10px 12px;
             border-radius: 8px;
             color: var(--text);
@@ -411,12 +432,20 @@
             text-overflow: ellipsis;
         }
 
+        /* Only the main content area scrolls vertically. */
+
         .main-area {
+            flex: 1 1 auto;
             min-width: 0;
-            flex: 1;
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
         }
 
         .authenticated-main {
+            width: 100%;
             max-width: 1500px;
             margin: 28px auto;
             padding: 0 26px;
@@ -430,6 +459,7 @@
             display: flex;
             align-items: center;
             gap: 11px;
+            flex: 0 0 auto;
             margin-top: auto;
             padding: 16px 5px 4px;
             border-top: 1px solid var(--border);
@@ -480,6 +510,7 @@
 
         .app-layout.sidebar-collapsed .sidebar {
             width: 76px;
+            flex-basis: 76px;
             padding-right: 10px;
             padding-left: 10px;
         }
@@ -514,6 +545,7 @@
         ========================================= */
 
         main {
+            width: 100%;
             max-width: 1250px;
             margin: 28px auto;
             padding: 0 24px;
@@ -817,10 +849,6 @@
            15. THEME VISIBILITY AND CHILD TEMPLATES
         ========================================= */
 
-        /* These rules target common child-template content
-           while leaving links, buttons, muted text and alerts
-           with their own intended colors. */
-
         html[data-theme="light"] main h1,
         html[data-theme="light"] main h2,
         html[data-theme="light"] main h3,
@@ -878,8 +906,6 @@
             -webkit-text-fill-color: #66502f;
         }
 
-        /* Keep button text white across themes. */
-
         button,
         button *,
         .button,
@@ -887,8 +913,6 @@
             color: #ffffff;
             -webkit-text-fill-color: #ffffff;
         }
-
-        /* Preserve alert text colors. */
 
         .flash.error,
         .flash.error * {
@@ -923,10 +947,12 @@
 
             .sidebar {
                 width: 205px;
+                flex-basis: 205px;
             }
 
             .app-layout.sidebar-collapsed .sidebar {
                 width: 65px;
+                flex-basis: 65px;
             }
 
             .authenticated-main {
@@ -982,15 +1008,184 @@
             }
         }
 
+
+
+        /* =========================================
+        REGISTER AND SIGN IN PAGE SCROLLING FIX
+        Other application pages remain unchanged    .
+        ========================================= */
+
+        body.auth-scroll-page {
+            height: auto;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        body.auth-scroll-page main {
+            width: 100%;
+            height: auto;
+            min-height: 0;
+            margin-top: 30px;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+        }
+
+
+
+
+        /* =========================================
+        FIXED HEADER FOR REGISTER AND SIGN IN
+        ========================================= */
+
+        /* Let the document handle page scrolling */
+        html:has(body.auth-scroll-page) {
+            overflow-x: clip !important;
+            overflow-y: auto !important;
+        }
+
+        body.auth-scroll-page {
+            overflow: visible !important;
+        }
+
+        /* Keep the header visible while scrolling */
+        body.auth-scroll-page > .topbar {
+            position: sticky !important;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+
+
+        /* =========================================
+        PUBLIC PAGES - FIXED HEADER + SCROLLING
+        Welcome, Register and Sign In only
+        ========================================= */
+
+        /* Keep the page within the browser viewport */
+        html:has(body.public-scroll-page) {
+            height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        /* Main page layout */
+        body.public-scroll-page {
+            display: flex !important;
+            flex-direction: column !important;
+
+            width: 100% !important;
+            height: 100vh !important;
+            min-height: 0 !important;
+
+            overflow: hidden !important;
+        }
+
+        /* Header stays at the top */
+        body.public-scroll-page > .topbar {
+            position: relative !important;
+            top: 0;
+            z-index: 1000;
+
+            width: 100%;
+            flex: 0 0 auto !important;
+        }
+
+        /* Only the page content scrolls */
+        body.public-scroll-page > main {
+            display: block;
+
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: auto !important;
+            max-height: none !important;
+
+            width: 100%;
+            max-width: 900px;
+
+            margin: 0 auto !important;
+            padding: 35px 24px 65px;
+
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+
+            overscroll-behavior-y: contain;
+            scrollbar-width: thin;
+        }
+
+        /* Mobile devices */
+        @media (max-width: 600px) {
+            body.public-scroll-page > main {
+                padding: 20px 16px 55px;
+            }
+        }
+
+
+
+        /* =========================================
+        HIDE SCROLLBAR - REGISTER & SIGN IN ONLY
+        Scrolling remains fully functional
+        ========================================= */
+
+        body.public-scroll-page:has(
+            main form[action*="register"]
+        ) > main,
+        body.public-scroll-page:has(
+            main form[action*="signin"]
+        ) > main {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+
+        /* Chrome, Edge, Safari */
+        body.public-scroll-page:has(
+            main form[action*="register"]
+        ) > main::-webkit-scrollbar,
+        body.public-scroll-page:has(
+            main form[action*="signin"]
+        ) > main::-webkit-scrollbar {
+            display: none !important;
+        }
+
+
+        /* =========================================
+        HIDE SCROLLBAR - SIGN IN AND REGISTER
+        Keep scrolling and fixed header working
+        ========================================= */
+
+        /* Firefox and older Microsoft browsers */
+        html.hide-auth-scrollbar,
+        html.hide-auth-scrollbar body,
+        html.hide-auth-scrollbar main,
+        html.hide-auth-scrollbar main * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+
+        /* Chrome, Edge and Safari */
+        html.hide-auth-scrollbar::-webkit-scrollbar,
+        html.hide-auth-scrollbar body::-webkit-scrollbar,
+        html.hide-auth-scrollbar main::-webkit-scrollbar,
+        html.hide-auth-scrollbar main *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+
+
+
+
     </style>
 </head>
 
-<body>
+<body class="{% if request.endpoint in ['welcome', 'register', 'signin'] %}public-scroll-page{% endif %}"></body>
 
 <header class="topbar">
     <a class="brand"
        href="{% if session.get('user_id') %}{% if session.get('role') == 'admin' %}{{ url_for('admin_dashboard') }}{% else %}{{ url_for('user_home') }}{% endif %}{% else %}{{ url_for('welcome') }}{% endif %}">
-        <span class="brand-symbol">◆</span>
+        <span class="brand-symbol">âœ¦</span>
         AI Text-to-SQL Assistant
     </a>
 
@@ -1037,7 +1232,7 @@
                     aria-label="Collapse sidebar"
                     aria-expanded="true"
                     title="Collapse sidebar">
-                ☰
+                â˜°
             </button>
         </div>
 
@@ -1045,53 +1240,70 @@
             {% if session.get('role') == 'admin' %}
 
                 <a href="{{ url_for('admin_dashboard') }}" title="Home">
-                    <span class="nav-icon" aria-hidden="true">⌂</span>
+                    <span class="nav-icon" aria-hidden="true">âŒ‚</span>
                     <span class="nav-label">Home</span>
                 </a>
 
                 <a href="{{ url_for('admin_dashboard') }}" title="Dashboards">
-                    <span class="nav-icon" aria-hidden="true">▦</span>
+                    <span class="nav-icon" aria-hidden="true">â–¦</span>
                     <span class="nav-label">Dashboards</span>
                 </a>
 
+                <a href="{{ url_for('admin_dashboard', panel='feedback') }}"
+                    title="User Feedback">
+                    <span class="nav-icon" aria-hidden="true">ðŸ’¬</span>
+                    <span class="nav-label">User Feedback</span>
+                </a>
+
+
                 <a href="{{ url_for('admin_users') }}" title="Manage Users">
-                    <span class="nav-icon" aria-hidden="true">☻</span>
+                    <span class="nav-icon" aria-hidden="true">â˜»</span>
                     <span class="nav-label">Manage Users</span>
                 </a>
 
             {% else %}
 
                 <a href="{{ url_for('user_home') }}" title="Home">
-                    <span class="nav-icon" aria-hidden="true">⌂</span>
+                    <span class="nav-icon" aria-hidden="true">âŒ‚</span>
                     <span class="nav-label">Home</span>
                 </a>
 
                 <a href="{{ url_for('user_home') }}" title="Dashboards">
-                    <span class="nav-icon" aria-hidden="true">▦</span>
+                    <span class="nav-icon" aria-hidden="true">â–¦</span>
                     <span class="nav-label">Dashboards</span>
                 </a>
 
                 <a href="{{ url_for('data_sources') }}" title="Data Sources">
-                    <span class="nav-icon" aria-hidden="true">⚙</span>
+                    <span class="nav-icon" aria-hidden="true">âš™</span>
                     <span class="nav-label">Data Sources</span>
+                </a>
+
+                <a href="{{ url_for('user_home', panel='feedback') }}"
+                    title="User Feedback">
+                    <span class="nav-icon" aria-hidden="true">ðŸ’¬</span>
+                    <span class="nav-label">User Feedback</span>
+                </a>
+
+                <a href="{{ url_for('user_home', panel='conversations') }}"
+                    title="My Feedback & Admin Replies">
+                    <span class="nav-icon" aria-hidden="true">â†”</span>
+                    <span class="nav-label">My Feedback & Admin Replies</span>
                 </a>
 
             {% endif %}
         </nav>
 
         <div class="sidebar-profile">
-            <div class="profile-icon" aria-hidden="true">
-                {{ session.get('username', 'U')[0]|upper }}
+            <div class="profile-icon">
+                {{ session.get('username', 'U')[:1]|upper }}
             </div>
-
             <div class="profile-details">
-                <span class="profile-name">
+                <div class="profile-name">
                     {{ session.get('username', 'User') }}
-                </span>
-
-                <span class="profile-role">
+                </div>
+                <div class="profile-role">
                     {{ session.get('role', 'user')|title }}
-                </span>
+                </div>
             </div>
         </div>
     </aside>

@@ -4,7 +4,7 @@ import re
 import sqlglot
 from sqlglot import exp
 
-from db import get_connection
+from workspace_db import get_user_workspace_connection
 
 MAX_ROWS = 100
 QUERY_TIMEOUT_SECONDS = 10
@@ -207,13 +207,16 @@ def validate_sql(sql):
     return query
 
 
-def execute_sql(sql):
-    """Validate and execute a SQL query against SQL Server."""
+def execute_sql(sql, user_id):
+    """
+    Validate and execute a SELECT query using
+    the logged-in user's restricted SQL Server account.
+    """
     safe_sql = validate_sql(sql)
     connection = None
 
     try:
-        connection = get_connection()
+        connection = get_user_workspace_connection(user_id)
         connection.timeout = QUERY_TIMEOUT_SECONDS
 
         cursor = connection.cursor()

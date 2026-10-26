@@ -179,6 +179,32 @@
     color: #8b1e1e;
 }
 
+
+/* Keep the sign-in lockout timer readable in every theme */
+html[data-theme="dark"] .lockout-message,
+html[data-theme="dark"] .lockout-message *,
+html[data-theme="dark"] .lockout-message strong {
+    background-color: #3b1d24;
+    color: #fecaca;
+    -webkit-text-fill-color: #fecaca;
+}
+
+html[data-theme="light"] .lockout-message,
+html[data-theme="light"] .lockout-message *,
+html[data-theme="light"] .lockout-message strong {
+    color: #8b1e1e;
+    -webkit-text-fill-color: #8b1e1e;
+}
+
+html[data-theme="read"] .lockout-message,
+html[data-theme="read"] .lockout-message *,
+html[data-theme="read"] .lockout-message strong {
+    background-color: #f5ead5;
+    color: #594126;
+    -webkit-text-fill-color: #594126;
+}
+
+
 .lockout-message p {
     margin: 6px 0 0;
     line-height: 1.5;

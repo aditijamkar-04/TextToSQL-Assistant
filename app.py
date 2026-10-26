@@ -1,8 +1,17 @@
-
+﻿
 import os
 import sqlite3
 from functools import wraps
 from pathlib import Path
+
+from workspace_tables import (
+    create_workspace_table,
+    list_workspace_tables,
+    insert_workspace_record,
+    view_workspace_records,
+    modify_workspace_record,
+    get_workspace_record_keys,
+)
 
 import requests
 from dotenv import load_dotenv
@@ -29,9 +38,19 @@ from auth_db import (
     get_login_lockout,
     record_failed_login,
     clear_login_attempts,
+    record_feedback,
+    get_all_feedback,
+    get_user_feedback,
+    save_admin_feedback_reply,
+    add_feedback_message,
+    get_feedback_messages,
+    get_feedback_owner,
 )
-from text_to_sql import ask_database
+from text_to_sql import ask_database, explain_sql
 
+from workspace_provisioning import provision_user_workspace
+
+from workspace_credentials import get_workspace_credentials
 
 # --------------------------------------------------
 # APPLICATION CONFIGURATION
@@ -121,6 +140,15 @@ def welcome():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    # Disable new registrations on the hosted demo.
+    # Local registration remains available.
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        flash(
+            "Registration is disabled in the hosted demo.",
+            "info",
+        )
+        return redirect(url_for("signin"))
+
     if session.get("user_id"):
         if session.get("role") == "admin":
             return redirect(url_for("admin_dashboard"))
@@ -129,6 +157,7 @@ def register():
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip() or None
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
 
@@ -140,11 +169,32 @@ def register():
         else:
             try:
                 # Public registration can create ordinary users only.
-                create_user(
+                user_id = create_user(
                     username,
                     password,
                     role="user",
+                    email=email,
                 )
+
+                # Create a private SQL Server workspace
+                # for the newly registered user.
+                try:
+                    provision_user_workspace(user_id)
+
+                except Exception:
+                    app.logger.exception(
+                        "Workspace provisioning failed for user ID %s",
+                        user_id,
+                    )
+
+                    flash(
+                        "Your account was created, but your "
+                        "database workspace is not ready yet. "
+                        "Please contact the administrator.",
+                        "error",
+                    )
+
+                    return redirect(url_for("signin"))
 
                 flash(
                     "Registration successful. Please sign in.",
@@ -216,7 +266,36 @@ def signin():
             return render_template("signin.html"), 503
 
         if user:
+            # Only ordinary users require a private SQL workspace.
+            if user["role"] == "user":
+                try:
+                    workspace = get_workspace_credentials(
+                        user["user_id"]
+                    )
+
+                except ValueError:
+                    flash(
+                        "Your database workspace is not ready yet. "
+                        "Please contact the administrator.",
+                        "error",
+                    )
+                    return render_template("signin.html"), 503
+
+                except Exception:
+                    app.logger.exception(
+                        "Unable to check workspace for user ID %s",
+                        user["user_id"],
+                    )
+
+                    flash(
+                        "Your workspace is temporarily unavailable. "
+                        "Please contact the administrator.",
+                        "error",
+                    )
+                    return render_template("signin.html"), 503
+
             # Clear the username-based counter after successful login.
+
             try:
                 clear_login_attempts(username)
             except sqlite3.Error:
@@ -292,6 +371,7 @@ def logout():
 # USER HOME
 # --------------------------------------------------
 
+
 @app.route("/user")
 @role_required("user")
 def user_home():
@@ -299,6 +379,18 @@ def user_home():
         session["user_id"],
         limit=10,
     )
+    feedback_items = get_user_feedback(session["user_id"])
+
+    for item in feedback_items:
+        item["conversation_messages"] = get_feedback_messages(
+            item["feedback_id"]
+        )
+
+
+    active_panel = request.args.get("panel", "")
+    if active_panel not in {"feedback", "conversations"}:
+        active_panel = ""
+
 
     return render_template(
         "user_home.html",
@@ -306,12 +398,16 @@ def user_home():
         result=None,
         error=None,
         history=history,
+        feedback_items=feedback_items,
+        active_panel=active_panel,
     )
+
 
 
 # --------------------------------------------------
 # USER DASHBOARD
 # --------------------------------------------------
+
 
 @app.route("/user/dashboard")
 @role_required("user")
@@ -320,11 +416,14 @@ def user_dashboard():
         session["user_id"],
         limit=10,
     )
+    feedback_items = get_user_feedback(session["user_id"])
 
     return render_template(
         "user_dashboard.html",
         history=history,
+        feedback_items=feedback_items,
     )
+
 
 
 # --------------------------------------------------
@@ -334,6 +433,35 @@ def user_dashboard():
 @app.route("/ask", methods=["POST"])
 @role_required("user")
 def ask():
+
+    # Check workspace readiness for every SQL request.
+    user_id = session["user_id"]
+
+    try:
+        workspace = get_workspace_credentials(user_id)
+
+    except ValueError:
+        flash(
+            "Your database workspace is not ready yet. "
+            "Please contact the administrator.",
+            "error",
+        )
+        return redirect(url_for("user_home"))
+
+    except Exception:
+        app.logger.exception(
+            "Workspace readiness check failed for user ID %s",
+            user_id,
+        )
+
+        flash(
+            "Your database workspace is temporarily unavailable.",
+            "error",
+        )
+
+        return redirect(url_for("user_home"))
+
+
     question = request.form.get(
         "question",
         "",
@@ -353,13 +481,29 @@ def ask():
         )
         return redirect(url_for("user_home"))
 
+
+    # Hosted demo safety switch.
+    # When enabled, do not call Ollama or execute SQL.
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        flash(
+            "Hosted demo mode is active. Real AI generation "
+            "and database execution are disabled.",
+            "info",
+        )
+        return redirect(url_for("user_home"))
+
+
+
     result = None
     error = None
     status = "failed"
     generated_sql = None
 
     try:
-        result = ask_database(question)
+        result = ask_database(
+            question,
+            user_id=session["user_id"],
+        )
 
         if result.get("status") == "clarification_needed":
             error = result.get(
@@ -416,6 +560,60 @@ def ask():
     )
 
 
+
+# --------------------------------------------------
+# EXPLAIN GENERATED SQL
+# --------------------------------------------------
+
+@app.route("/explain-query", methods=["POST"])
+@role_required("user")
+def explain_query():
+    # Never call AI services in hosted demo mode.
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {
+            "error": "Query explanations are disabled in the hosted demo."
+        }, 403
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {"error": "Invalid request."}, 400
+
+    question = data.get("question", "")
+    sql = data.get("sql", "")
+
+    if not isinstance(question, str) or not isinstance(sql, str):
+        return {"error": "Invalid question or SQL."}, 400
+
+    question = question.strip()
+    sql = sql.strip()
+
+    if not question or not sql:
+        return {
+            "error": "A question and generated SQL are required."
+        }, 400
+
+    if len(question) > 2000 or len(sql) > 10000:
+        return {"error": "The question or SQL is too long."}, 400
+
+    try:
+        explanation = explain_sql(question, sql)
+
+        return {"explanation": explanation}, 200
+
+    except (ValueError, requests.RequestException):
+        app.logger.exception("SQL explanation request failed.")
+        return {
+            "error": "Unable to generate an explanation. Please try again."
+        }, 502
+
+    except Exception:
+        app.logger.exception("Unexpected SQL explanation error.")
+        return {
+            "error": "An unexpected error occurred while explaining the query."
+        }, 500
+
+
 # --------------------------------------------------
 # DATA SOURCES
 # --------------------------------------------------
@@ -428,6 +626,86 @@ def data_sources():
     return render_template("data_sources.html")
 
 
+
+
+
+@app.route("/feedback", methods=["GET", "POST"])
+@role_required("user")
+def feedback():
+    if request.method == "POST":
+        category = request.form.get("category", "").strip()
+        message = request.form.get("message", "").strip()
+
+        allowed_categories = {
+            "Suggestion",
+            "Bug Report",
+            "General Feedback",
+        }
+
+        if category not in allowed_categories:
+            flash("Please select a valid feedback category.", "error")
+            return redirect(url_for("user_home", panel="feedback"))
+
+        if not message or len(message) > 2000:
+            flash(
+                "Please enter feedback between 1 and 2000 characters.",
+                "error",
+            )
+            return redirect(url_for("user_home", panel="feedback"))
+
+        record_feedback(
+            session["user_id"],
+            category,
+            message,
+        )
+
+        flash("Thank you! Your feedback has been submitted.", "success")
+        return redirect(url_for("user_home", panel="conversations"))
+
+    return render_template("feedback.html")
+
+
+
+
+
+@app.route(
+    "/feedback/<int:feedback_id>/reply",
+    methods=["POST"],
+)
+@role_required("user")
+def user_feedback_reply(feedback_id):
+    message = request.form.get("message", "").strip()
+
+    if not message or len(message) > 2000:
+        flash(
+            "Please enter a message between 1 and 2000 characters.",
+            "error",
+        )
+        return redirect(url_for("user_home"))
+
+    owner = get_feedback_owner(feedback_id)
+
+    if not owner or owner["user_id"] != session["user_id"]:
+        flash("Feedback conversation was not found.", "error")
+        return redirect(url_for("user_home"))
+
+    try:
+        add_feedback_message(
+            feedback_id,
+            session["user_id"],
+            "user",
+            message,
+        )
+    except sqlite3.Error:
+        app.logger.exception("Unable to save user feedback message.")
+        flash("Could not send your message. Please try again.", "error")
+        return redirect(url_for("user_home"))
+
+    flash("Message sent successfully.", "success")
+    return redirect(url_for("user_home"))
+
+
+
 # --------------------------------------------------
 # ADMIN DASHBOARD
 # --------------------------------------------------
@@ -435,18 +713,96 @@ def data_sources():
 @app.route("/admin")
 @role_required("admin")
 def admin_dashboard():
+
+    active_panel = request.args.get("panel", "home")
+
+    if active_panel not in {"home", "feedback"}:
+        active_panel = "home"
+
     users = list_users()
     history = get_query_history(limit=10)
+
+    feedback = get_all_feedback()
+
+    for item in feedback:
+        item["conversation_messages"] = get_feedback_messages(
+            item["feedback_id"]
+        )
 
     return render_template(
         "admin_dashboard.html",
         users=users,
         history=history,
+        feedback=feedback,
         user_count=len(users),
         active_count=sum(
             user["is_active"] for user in users
         ),
+        active_panel=active_panel,
     )
+
+
+
+# --------------------------------------------------
+# ADMIN FEEDBACK MANAGEMENT
+# --------------------------------------------------
+
+
+@app.route(
+    "/admin/feedback/<int:feedback_id>/reply",
+    methods=["POST"],
+)
+@role_required("admin")
+def admin_feedback_reply(feedback_id):
+    message = request.form.get("admin_reply", "").strip()
+
+    if not message or len(message) > 2000:
+        flash(
+            "Please enter a reply between 1 and 2000 characters.",
+            "error",
+        )
+        return redirect(
+            url_for("admin_dashboard", panel="feedback")
+        )
+
+    owner = get_feedback_owner(feedback_id)
+
+    if not owner:
+        flash("Feedback conversation was not found.", "error")
+        return redirect(
+            url_for("admin_dashboard", panel="feedback")
+        )
+
+    try:
+        message_id = add_feedback_message(
+            feedback_id,
+            session["user_id"],
+            "admin",
+            message,
+        )
+
+        if not message_id:
+            flash("Feedback conversation was not found.", "error")
+            return redirect(
+                url_for("admin_dashboard", panel="feedback")
+            )
+
+        # Keep the legacy field updated for existing dashboard displays.
+        save_admin_feedback_reply(feedback_id, message)
+
+    except sqlite3.Error:
+        app.logger.exception("Unable to save admin feedback message.")
+        flash("Could not save the reply. Please try again.", "error")
+        return redirect(
+            url_for("admin_dashboard", panel="feedback")
+        )
+
+    flash("Admin reply sent successfully.", "success")
+    return redirect(
+        url_for("admin_dashboard", panel="feedback")
+    )
+
+
 
 
 # --------------------------------------------------
@@ -499,6 +855,270 @@ def admin_user_status(user_id):
         )
 
     return redirect(url_for("admin_users"))
+
+
+
+
+# --------------------------------------------------
+# CREATE TABLE IN PRIVATE USER WORKSPACE
+# --------------------------------------------------
+
+@app.route("/workspace/create-table", methods=["POST"])
+@role_required("user")
+def workspace_create_table():
+
+    # Never execute database changes in hosted demo mode.
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {
+            "error": "Table creation is disabled in demo mode."
+        }, 403
+
+    # Identity must come from the authenticated session.
+    user_id = session["user_id"]
+
+    # Only accept JSON requests.
+    if not request.is_json:
+        return {
+            "error": "JSON request required."
+        }, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {
+            "error": "Invalid request body."
+        }, 400
+
+    # Reject unexpected fields, including supplied user IDs.
+    if set(data) != {"table_name", "columns"}:
+        return {
+            "error": "Only table_name and columns are allowed."
+        }, 400
+
+    table_name = data["table_name"]
+    columns = data["columns"]
+
+    try:
+        result = create_workspace_table(
+            user_id=user_id,
+            table_name=table_name,
+            columns=columns,
+        )
+
+        return result, 201
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {
+            "error": "Workspace access denied."
+        }, 403
+
+    except Exception:
+        app.logger.exception(
+            "Table creation failed for user ID %s",
+            user_id,
+        )
+
+        return {
+            "error": "Unable to create table. Check server logs."
+        }, 500
+
+
+
+
+@app.route("/workspace/my-tables", methods=["GET"])
+@role_required("user")
+def workspace_my_tables():
+    try:
+        tables = list_workspace_tables(session["user_id"])
+        return {"tables": tables}, 200
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Unable to list workspace tables.")
+        return {"error": "Unable to load your tables."}, 500
+
+
+
+@app.route("/workspace/insert-record", methods=["POST"])
+@role_required("user")
+def workspace_insert_record():
+
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {
+            "error": "Record insertion is disabled in demo mode."
+        }, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {"error": "Invalid request body."}, 400
+
+    if set(data) != {"table_name", "values"}:
+        return {
+            "error": "Only table_name and values are allowed."
+        }, 400
+
+    try:
+        result = insert_workspace_record(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+            values=data["values"],
+        )
+
+        return result, 201
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception(
+            "Unable to insert workspace record."
+        )
+        return {
+            "error": "Unable to insert record. Check server logs."
+        }, 500
+
+
+
+@app.route("/workspace/view-records", methods=["GET"])
+@role_required("user")
+def workspace_view_records():
+
+    table_name = request.args.get("table", "")
+
+    try:
+        result = view_workspace_records(
+            user_id=session["user_id"],
+            table_name=table_name,
+        )
+
+        return result, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception(
+            "Unable to view workspace records."
+        )
+        return {
+            "error": "Unable to load records."
+        }, 500
+
+
+
+# --------------------------------------------------
+# UPDATE / DELETE WORKSPACE RECORDS
+# --------------------------------------------------
+
+@app.route("/workspace/record-keys", methods=["GET"])
+@role_required("user")
+def workspace_record_keys():
+    try:
+        return get_workspace_record_keys(
+            session["user_id"],
+            request.args.get("table", "")
+        ), 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception(
+            "Unable to retrieve workspace primary keys"
+        )
+        return {"error": "Unable to retrieve primary keys."}, 500
+
+
+@app.route("/workspace/update-record", methods=["POST"])
+@role_required("user")
+def workspace_update_record():
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {"error": "Editing is disabled in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {
+        "table_name", "keys", "values"
+    }:
+        return {
+            "error": "Provide table_name, keys and values."
+        }, 400
+
+    try:
+        return modify_workspace_record(
+            session["user_id"],
+            data["table_name"],
+            data["keys"],
+            values=data["values"]
+        ), 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Workspace record update failed")
+        return {"error": "Unable to update record."}, 500
+
+
+@app.route("/workspace/delete-record", methods=["POST"])
+@role_required("user")
+def workspace_delete_record():
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {"error": "Deleting is disabled in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {
+        "table_name", "keys"
+    }:
+        return {
+            "error": "Provide table_name and keys."
+        }, 400
+
+    try:
+        return modify_workspace_record(
+            session["user_id"],
+            data["table_name"],
+            data["keys"],
+            delete=True
+        ), 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Workspace record deletion failed")
+        return {"error": "Unable to delete record."}, 500
 
 
 # --------------------------------------------------

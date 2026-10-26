@@ -1,25 +1,61 @@
 
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
-{% block content %}
-<h1>Admin Dashboard</h1>
-<p class="muted">Manage application accounts and review recent query activity.</p>
 
+{% block content %}
+
+{% set selected_panel = active_panel|default('home', true) %}
+
+<!-- =====================================================
+     1. ADMIN HOME
+     Only visible when Home is selected.
+===================================================== -->
+
+{% if selected_panel == 'home' %}
+
+<h1>Admin Dashboard</h1>
+
+<p class="muted">
+    Manage application accounts and review recent query activity.
+</p>
+
+<!-- User Accounts -->
 <div class="card">
     <h2>User Accounts</h2>
-    <p>Total accounts: <strong>{{ user_count }}</strong></p>
-    <p>Active accounts: <strong>{{ active_count }}</strong></p>
-    <a class="button" href="{{ url_for('admin_users') }}">Manage Users</a>
+
+    <p>
+        Total accounts:
+        <strong>{{ user_count }}</strong>
+    </p>
+
+    <p>
+        Active accounts:
+        <strong>{{ active_count }}</strong>
+    </p>
+
+    <a class="button" href="{{ url_for('admin_users') }}">
+        Manage Users
+    </a>
 </div>
 
+
+<!-- Recent Query Activity -->
 <div class="card">
     <h2>Recent Query Activity</h2>
+
     {% if history %}
+
     <div class="table-wrapper">
         <table>
             <thead>
-                <tr><th>User</th><th>Question</th><th>Status</th><th>Time</th></tr>
+                <tr>
+                    <th>User</th>
+                    <th>Question</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                </tr>
             </thead>
+
             <tbody>
                 {% for item in history %}
                 <tr>
@@ -32,8 +68,196 @@
             </tbody>
         </table>
     </div>
+
     {% else %}
-    <p class="muted">No query activity has been recorded yet.</p>
+
+    <p class="muted">
+        No query activity has been recorded yet.
+    </p>
+
     {% endif %}
 </div>
+
+{% endif %}
+
+
+<!-- =====================================================
+     2. ADMIN USER FEEDBACK
+     Only visible when User Feedback is selected.
+===================================================== -->
+
+{% if selected_panel == 'feedback' %}
+
+<div class="card" id="admin-user-feedback">
+
+    <h2>User Feedback</h2>
+
+    <p class="muted">
+        Review feedback submitted by registered users.
+        Total submissions:
+        <strong>{{ feedback|length }}</strong>
+    </p>
+
+    {% if feedback %}
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Category</th>
+                    <th>Feedback Message</th>
+                    <th>Submitted At</th>
+                    <th>Admin Reply</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in feedback %}
+
+                <tr>
+                    <!-- Username -->
+                    <td>{{ item.username }}</td>
+
+                    <!-- Email -->
+                    <td>
+                        {% if item.email %}
+                            {{ item.email }}
+                        {% else %}
+                            <span class="muted">
+                                Not provided
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Feedback Category -->
+                    <td>{{ item.category }}</td>
+
+                    <!-- Original Feedback -->
+                    <td style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ item.message }}</td>
+
+                    <!-- Submission Date -->
+                    <td>{{ item.created_at }}</td>
+
+                    <!-- Admin Conversation -->
+                    <td style="min-width: 280px;">
+
+                        <div style="max-height: 280px; overflow-y: auto; margin-bottom: 12px;">
+
+                            <!-- Previous Legacy Reply -->
+                            {% if item.admin_reply and not item.conversation_messages %}
+
+                            <div style="padding: 10px; margin-bottom: 10px; border-radius: 8px; background: var(--surface-alt);">
+
+                                <strong>
+                                    Admin (previous reply):
+                                </strong>
+
+                                <p style="white-space: pre-wrap; overflow-wrap: anywhere;">
+                                    {{ item.admin_reply }}
+                                </p>
+
+                                <small class="muted">
+                                    Replied:
+                                    {{ item.replied_at or "Date unavailable" }}
+                                </small>
+
+                            </div>
+
+                            {% endif %}
+
+
+                            <!-- Feedback Conversation Messages -->
+                            {% for msg in item.conversation_messages %}
+
+                            <div style="padding: 10px; margin-bottom: 10px; border-radius: 8px; background: var(--surface-alt);">
+
+                                <strong>
+                                    {% if msg.sender_role == 'admin' %}
+                                        Admin
+                                    {% else %}
+                                        {{ msg.username }}
+                                    {% endif %}
+                                </strong>
+
+                                <small class="muted">
+                                    {{ msg.created_at }}
+                                </small>
+
+                                <p style="white-space: pre-wrap; overflow-wrap: anywhere;">
+                                    {{ msg.message }}
+                                </p>
+
+                            </div>
+
+                            {% else %}
+
+                                {% if not item.admin_reply %}
+                                    <p class="muted">
+                                        No conversation messages yet.
+                                    </p>
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Send Admin Reply -->
+                        <form
+                            method="POST"
+                            action="{{ url_for('admin_feedback_reply', feedback_id=item.feedback_id) }}"
+                        >
+
+                            <input
+                                type="hidden"
+                                name="csrf_token"
+                                value="{{ csrf_token() }}"
+                            >
+
+                            <label for="admin_reply_{{ item.feedback_id }}">
+                                Send a message
+                            </label>
+
+                            <textarea
+                                id="admin_reply_{{ item.feedback_id }}"
+                                name="admin_reply"
+                                rows="3"
+                                maxlength="2000"
+                                required
+                                style="width: 100%;"
+                                placeholder="Write your reply..."
+                            ></textarea>
+
+                            <button
+                                type="submit"
+                                style="margin-top: 8px;"
+                            >
+                                Send Reply
+                            </button>
+
+                        </form>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% else %}
+
+    <p class="muted">
+        No user feedback has been submitted yet.
+    </p>
+
+    {% endif %}
+
+</div>
+
+{% endif %}
+
 {% endblock %}

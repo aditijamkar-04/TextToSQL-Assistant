@@ -1,4 +1,4 @@
-
+﻿
 import os
 import sqlite3
 import time
@@ -61,6 +61,7 @@ def get_auth_connection():
 # DATABASE INITIALIZATION
 # --------------------------------------------------
 
+
 def init_auth_db():
     with get_auth_connection() as connection:
 
@@ -103,11 +104,119 @@ def init_auth_db():
         """)
 
 
+
+        # --------------------------------------------------
+        # PRIVATE WORKSPACE CREDENTIALS
+        # --------------------------------------------------
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS workspace_credentials (
+                user_id INTEGER PRIMARY KEY,
+                sql_login TEXT NOT NULL UNIQUE,
+                encrypted_password TEXT NOT NULL,
+                provisioning_status TEXT NOT NULL
+                    DEFAULT 'pending'
+                    CHECK (
+                        provisioning_status IN (
+                            'pending',
+                            'ready',
+                            'failed'
+                        )
+                    ),
+                created_at TEXT NOT NULL
+                    DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id)
+                    REFERENCES users(user_id)
+                    ON DELETE CASCADE
+            )
+        """)
+
+
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                feedback_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                message TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id)
+                    REFERENCES users(user_id)
+                    ON DELETE CASCADE
+            )
+        """)
+
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS feedback_messages (
+                message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feedback_id INTEGER NOT NULL,
+                sender_id INTEGER NOT NULL,
+                sender_role TEXT NOT NULL
+                    CHECK (sender_role IN ('admin', 'user')),
+                message TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (feedback_id)
+                    REFERENCES feedback(feedback_id)
+                    ON DELETE CASCADE,
+                FOREIGN KEY (sender_id)
+                    REFERENCES users(user_id)
+                    ON DELETE CASCADE
+            )
+        """)
+
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_feedback_messages_thread
+            ON feedback_messages(feedback_id, created_at, message_id)
+        """)
+
+
+        # Safely migrate existing databases without recreating tables.
+        user_columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(users)"
+            ).fetchall()
+        }
+
+        if "email" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email TEXT"
+            )
+
+        feedback_columns = {
+            row["name"]
+            for row in connection.execute(
+                "PRAGMA table_info(feedback)"
+            ).fetchall()
+        }
+
+        if "admin_reply" not in feedback_columns:
+            connection.execute(
+                "ALTER TABLE feedback ADD COLUMN admin_reply TEXT"
+            )
+
+        if "replied_at" not in feedback_columns:
+            connection.execute(
+                "ALTER TABLE feedback ADD COLUMN replied_at TEXT"
+            )
+
+        # Allow only one account per non-empty email address.
+        connection.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS
+                idx_users_email_unique
+            ON users(email COLLATE NOCASE)
+            WHERE email IS NOT NULL AND email != ''
+        """)
+
+
+
 # --------------------------------------------------
 # CREATE USER
 # --------------------------------------------------
 
-def create_user(username, password, role="user"):
+
+def create_user(username, password, role="user", email=None):
     if not isinstance(username, str):
         raise ValueError("Invalid username.")
 
@@ -129,6 +238,23 @@ def create_user(username, password, role="user"):
     if role not in VALID_ROLES:
         raise ValueError("Invalid role.")
 
+    if email is not None:
+        if not isinstance(email, str):
+            raise ValueError("Invalid email address.")
+
+        email = email.strip().lower()
+
+        if not email:
+            email = None
+        elif (
+            len(email) > 254
+            or "@" not in email
+            or email.startswith("@")
+            or email.endswith("@")
+            or any(char.isspace() for char in email)
+        ):
+            raise ValueError("Please enter a valid email address.")
+
     password_hash = generate_password_hash(password)
 
     try:
@@ -138,23 +264,33 @@ def create_user(username, password, role="user"):
                 INSERT INTO users (
                     username,
                     password_hash,
-                    role
+                    role,
+                    email
                 )
-                VALUES (?, ?, ?)
+                VALUES (?, ?, ?, ?)
                 """,
                 (
                     username,
                     password_hash,
                     role,
+                    email,
                 ),
             )
 
             return cursor.lastrowid
 
     except sqlite3.IntegrityError as exc:
+        error_message = str(exc).lower()
+
+        if "email" in error_message:
+            raise ValueError(
+                "That email address is already registered."
+            ) from exc
+
         raise ValueError(
             "That username already exists."
         ) from exc
+
 
 
 # --------------------------------------------------
@@ -596,3 +732,177 @@ if __name__ == "__main__":
     print(
         f"Lockout duration: {LOGIN_LOCKOUT_SECONDS} seconds"
     )
+
+
+
+
+def record_feedback(user_id, category, message):
+    with get_auth_connection() as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO feedback (user_id, category, message)
+            VALUES (?, ?, ?)
+            """,
+            (user_id, category, message),
+        )
+
+        return cursor.lastrowid
+
+
+def get_all_feedback():
+    with get_auth_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT
+                f.feedback_id,
+                f.user_id,
+                u.username,
+                u.email,
+                f.category,
+                f.message,
+                f.created_at,
+                f.admin_reply,
+                f.replied_at
+            FROM feedback AS f
+            JOIN users AS u ON u.user_id = f.user_id
+            ORDER BY f.created_at DESC, f.feedback_id DESC
+            """
+        ).fetchall()
+
+        return [dict(row) for row in rows]
+
+
+def get_user_feedback(user_id):
+    with get_auth_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT
+                feedback_id,
+                category,
+                message,
+                created_at,
+                admin_reply,
+                replied_at
+            FROM feedback
+            WHERE user_id = ?
+            ORDER BY created_at DESC, feedback_id DESC
+            """,
+            (user_id,),
+        ).fetchall()
+
+        return [dict(row) for row in rows]
+
+
+def save_admin_feedback_reply(feedback_id, admin_reply):
+    with get_auth_connection() as connection:
+        cursor = connection.execute(
+            """
+            UPDATE feedback
+            SET admin_reply = ?, replied_at = CURRENT_TIMESTAMP
+            WHERE feedback_id = ?
+            """,
+            (admin_reply, feedback_id),
+        )
+
+        return cursor.rowcount > 0
+
+
+
+def add_feedback_message(feedback_id, sender_id, sender_role, message):
+    """Save one message in a feedback conversation."""
+    if sender_role not in {"admin", "user"}:
+        raise ValueError("Invalid sender role.")
+
+    with get_auth_connection() as connection:
+        feedback_exists = connection.execute(
+            "SELECT 1 FROM feedback WHERE feedback_id = ?",
+            (feedback_id,),
+        ).fetchone()
+
+        if not feedback_exists:
+            return False
+
+        cursor = connection.execute(
+            """
+            INSERT INTO feedback_messages
+                (feedback_id, sender_id, sender_role, message)
+            VALUES (?, ?, ?, ?)
+            """,
+            (feedback_id, sender_id, sender_role, message),
+        )
+
+        return cursor.lastrowid
+
+
+def get_feedback_messages(feedback_id):
+    """Return all messages in one conversation, oldest first."""
+    with get_auth_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT
+                fm.message_id,
+                fm.feedback_id,
+                fm.sender_id,
+                fm.sender_role,
+                fm.message,
+                fm.created_at,
+                u.username
+            FROM feedback_messages AS fm
+            JOIN users AS u ON u.user_id = fm.sender_id
+            WHERE fm.feedback_id = ?
+            ORDER BY fm.created_at ASC, fm.message_id ASC
+            """,
+            (feedback_id,),
+        ).fetchall()
+
+        return [dict(row) for row in rows]
+
+
+def get_feedback_owner(feedback_id):
+    """Return the user who owns a feedback conversation."""
+    with get_auth_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT feedback_id, user_id, category, message, created_at
+            FROM feedback
+            WHERE feedback_id = ?
+            """,
+            (feedback_id,),
+        ).fetchone()
+
+        return dict(row) if row else None
+
+
+
+def verify_workspace_user(user_id):
+    """
+    Verify that a workspace belongs to an existing,
+    active, ordinary user account.
+    """
+    if (
+        not isinstance(user_id, int)
+        or isinstance(user_id, bool)
+        or user_id <= 0
+    ):
+        raise ValueError("Invalid user ID.")
+
+    with get_auth_connection() as connection:
+        user = connection.execute(
+            """
+            SELECT user_id, role, is_active
+            FROM users
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+
+    if user is None:
+        raise PermissionError("User account does not exist.")
+
+    if user["role"] != "user":
+        raise PermissionError("Only ordinary users can access workspaces.")
+
+    if not user["is_active"]:
+        raise PermissionError("User account is inactive.")
+
+    return True
