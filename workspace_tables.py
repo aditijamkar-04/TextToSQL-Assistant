@@ -12,20 +12,65 @@ from auth_db import verify_workspace_user
 IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,127}$")
 
 ALLOWED_TYPES = {
-    "INT",
-    "BIGINT",
-    "SMALLINT",
-    "BIT",
-    "DATE",
-    "DATETIME2",
-    "FLOAT",
-    "DECIMAL(10,2)",
-    "DECIMAL(18,2)",
-    "VARCHAR(50)",
-    "VARCHAR(100)",
-    "VARCHAR(255)",
-    "NVARCHAR(100)",
-    "NVARCHAR(255)",
+        # Integer
+        "INT",
+        "TINYINT",
+        "BIGINT",
+        "SMALLINT",
+
+        # Numeric
+        "NUMERIC(4)",
+        "NUMERIC(5,2)",
+        "NUMERIC(4,2)",
+        "NUMERIC(6,2)",
+        "NUMERIC(10,2)",
+        "NUMERIC(18,2)",
+        "NUMERIC(18,4)",
+
+        # Other numeric
+        "FLOAT",
+        "REAL",
+
+        # Money
+        "MONEY",
+        "SMALLMONEY",
+
+        # Decimal
+        "DECIMAL(4)",
+        "DECIMAL(4,2)",
+        "DECIMAL(6,2)",
+        "DECIMAL(5,2)",
+        "DECIMAL(10,2)",
+        "DECIMAL(18,2)",
+        "DECIMAL(18,4)",
+
+        # Text
+        "CHAR(10)",
+        "VARCHAR(10)",
+        "VARCHAR(50)",
+        "VARCHAR(100)",
+        "VARCHAR(255)",
+
+        # Unicode text
+        "NCHAR(10)",
+        "NVARCHAR(10)",
+        "NVARCHAR(50)",
+        "NVARCHAR(100)",
+        "NVARCHAR(255)",
+
+        # Date and time
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "SMALLDATETIME",
+        "DATETIME2",
+        "DATETIMEOFFSET",
+
+        # Other
+        "BIT",
+        "UNIQUEIDENTIFIER",
+        "BINARY(16)",
+        "VARBINARY(10)"
 }
 
 
@@ -795,3 +840,362 @@ def get_workspace_record_keys(user_id, table_name):
     finally:
         connection.rollback()
         connection.close()
+
+
+
+def add_workspace_column(
+    user_id,
+    table_name,
+    column_name,
+    data_type
+):
+    """
+    Add a new nullable column to an existing table
+    in the authenticated user's private workspace.
+    """
+
+    if (
+        not isinstance(user_id, int)
+        or isinstance(user_id, bool)
+        or user_id <= 0
+    ):
+        raise ValueError("Invalid user ID.")
+
+    verify_workspace_user(user_id)
+
+    quoted_table = validate_identifier(table_name)
+    quoted_column = validate_identifier(column_name)
+
+    if not isinstance(data_type, str):
+        raise ValueError("Invalid column data type.")
+
+    data_type = data_type.strip().upper()
+
+    if data_type not in ALLOWED_TYPES:
+        raise ValueError(
+            f"Unsupported data type: {data_type}"
+        )
+
+    schema_name = get_workspace_schema(user_id)
+    quoted_schema = validate_identifier(schema_name)
+
+    connection = get_connection()
+    connection.timeout = 10
+
+    if connection.autocommit:
+        connection.close()
+        raise RuntimeError(
+            "Adding a column requires a transaction."
+        )
+
+    try:
+        cursor = connection.cursor()
+
+        # Verify that the table belongs to this workspace.
+        cursor.execute(
+            """
+            SELECT c.name
+            FROM sys.tables AS t
+            INNER JOIN sys.schemas AS s
+                ON s.schema_id = t.schema_id
+            INNER JOIN sys.columns AS c
+                ON c.object_id = t.object_id
+            WHERE s.name = ?
+              AND t.name = ?
+            """,
+            (schema_name, table_name),
+        )
+
+        existing_columns = [
+            row.name.casefold()
+            for row in cursor.fetchall()
+        ]
+
+        if not existing_columns:
+            raise ValueError(
+                "Table not found in your workspace."
+            )
+
+        # Prevent duplicate column names.
+        if column_name.casefold() in existing_columns:
+            raise ValueError(
+                f"Column '{column_name}' already exists."
+            )
+
+        # Add the new nullable column.
+        sql = (
+            f"ALTER TABLE {quoted_schema}.{quoted_table} "
+            f"ADD {quoted_column} {data_type} NULL"
+        )
+
+        cursor.execute(sql)
+        connection.commit()
+
+        return {
+            "status": "success",
+            "message": "Column added successfully.",
+            "table": table_name,
+            "column": column_name,
+            "data_type": data_type,
+        }
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+
+
+
+def _run_workspace_table_ddl(user_id, table_name, operation):
+    """Run a validated DDL operation on a table in the user's workspace."""
+
+    if (
+        not isinstance(user_id, int)
+        or isinstance(user_id, bool)
+        or user_id <= 0
+    ):
+        raise ValueError("Invalid user ID.")
+
+    verify_workspace_user(user_id)
+    quoted_table = validate_identifier(table_name)
+    schema = get_workspace_schema(user_id)
+    quoted_schema = validate_identifier(schema)
+
+    connection = get_connection()
+    connection.timeout = 10
+
+    if connection.autocommit:
+        connection.close()
+        raise RuntimeError("Table changes require a transaction.")
+
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT t.object_id
+            FROM sys.tables t
+            JOIN sys.schemas s ON s.schema_id = t.schema_id
+            WHERE s.name = ? AND t.name = ?
+            """,
+            (schema, table_name),
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            raise ValueError("Table not found in your workspace.")
+
+        result = operation(
+            cursor,
+            schema,
+            quoted_schema,
+            quoted_table,
+            row[0],
+        )
+
+        connection.commit()
+        return result
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+
+def delete_workspace_column(user_id, table_name, column_name):
+    quoted_column = validate_identifier(column_name)
+
+    def operation(cursor, schema, qs, qt, object_id):
+        cursor.execute(
+            """
+            SELECT column_id
+            FROM sys.columns
+            WHERE object_id = ? AND name = ?
+            """,
+            (object_id, column_name),
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            raise ValueError("Column not found.")
+
+        column_id = row[0]
+
+        cursor.execute(
+            "SELECT COUNT(*) FROM sys.columns WHERE object_id = ?",
+            (object_id,),
+        )
+        if cursor.fetchone()[0] <= 1:
+            raise ValueError("Cannot delete the last column.")
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM sys.index_columns
+            WHERE object_id = ? AND column_id = ?
+            """,
+            (object_id, column_id),
+        )
+        if cursor.fetchone()[0]:
+            raise ValueError(
+                "Cannot delete a column used by an index or primary key."
+            )
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM sys.foreign_key_columns
+            WHERE (parent_object_id = ? AND parent_column_id = ?)
+               OR (referenced_object_id = ? AND referenced_column_id = ?)
+            """,
+            (object_id, column_id, object_id, column_id),
+        )
+        if cursor.fetchone()[0]:
+            raise ValueError(
+                "Cannot delete a column used by a foreign key."
+            )
+
+        cursor.execute(
+            f"ALTER TABLE {qs}.{qt} DROP COLUMN {quoted_column}"
+        )
+
+        return {
+            "status": "success",
+            "message": "Column deleted successfully.",
+        }
+
+    return _run_workspace_table_ddl(user_id, table_name, operation)
+
+
+def rename_workspace_column(user_id, table_name, old_name, new_name):
+    old_column = validate_identifier(old_name)
+    validate_identifier(new_name)
+
+    def operation(cursor, schema, qs, qt, object_id):
+        cursor.execute(
+            "SELECT name FROM sys.columns WHERE object_id = ?",
+            (object_id,),
+        )
+        names = [row[0].casefold() for row in cursor.fetchall()]
+
+        if old_name.casefold() not in names:
+            raise ValueError("Existing column not found.")
+
+        if new_name.casefold() in names:
+            raise ValueError("A column with the new name already exists.")
+
+        object_name = f"{qs}.{qt}.{old_column}"
+
+        cursor.execute(
+            "EXEC sys.sp_rename ?, ?, 'COLUMN'",
+            (object_name, new_name),
+        )
+
+        return {
+            "status": "success",
+            "message": "Column renamed successfully.",
+        }
+
+    return _run_workspace_table_ddl(user_id, table_name, operation)
+
+
+def modify_workspace_column(
+    user_id,
+    table_name,
+    column_name,
+    data_type,
+    nullable=True,
+):
+    quoted_column = validate_identifier(column_name)
+
+    if not isinstance(data_type, str):
+        raise ValueError("Invalid data type.")
+
+    data_type = data_type.strip().upper()
+
+    if data_type not in ALLOWED_TYPES:
+        raise ValueError("Unsupported data type.")
+
+    if not isinstance(nullable, bool):
+        raise ValueError("Nullable must be true or false.")
+
+    def operation(cursor, schema, qs, qt, object_id):
+        cursor.execute(
+            """
+            SELECT is_identity, is_computed
+            FROM sys.columns
+            WHERE object_id = ? AND name = ?
+            """,
+            (object_id, column_name),
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            raise ValueError("Column not found.")
+
+        if row[0] or row[1]:
+            raise ValueError(
+                "Identity or computed columns cannot be modified here."
+            )
+
+        null_option = "NULL" if nullable else "NOT NULL"
+
+        cursor.execute(
+            f"ALTER TABLE {qs}.{qt} ALTER COLUMN "
+            f"{quoted_column} {data_type} {null_option}"
+        )
+
+        return {
+            "status": "success",
+            "message": "Column modified successfully.",
+        }
+
+    return _run_workspace_table_ddl(user_id, table_name, operation)
+
+
+def rename_workspace_table(user_id, old_name, new_name):
+    validate_identifier(new_name)
+
+    def operation(cursor, schema, qs, qt, object_id):
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM sys.tables t
+            JOIN sys.schemas s ON s.schema_id = t.schema_id
+            WHERE s.name = ? AND t.name = ?
+            """,
+            (schema, new_name),
+        )
+
+        if cursor.fetchone()[0]:
+            raise ValueError("A table with the new name already exists.")
+
+        cursor.execute(
+            "EXEC sys.sp_rename ?, ?, 'OBJECT'",
+            (f"{qs}.{qt}", new_name),
+        )
+
+        return {
+            "status": "success",
+            "message": "Table renamed successfully.",
+        }
+
+    return _run_workspace_table_ddl(user_id, old_name, operation)
+
+
+def delete_workspace_table(user_id, table_name):
+    def operation(cursor, schema, qs, qt, object_id):
+        cursor.execute(f"DROP TABLE {qs}.{qt}")
+
+        return {
+            "status": "success",
+            "message": "Table deleted successfully.",
+        }
+
+    return _run_workspace_table_ddl(user_id, table_name, operation)

@@ -271,7 +271,7 @@ def verify_workspace_login(user_id, password):
                 "Workspace login verification failed."
             )
 
-        return True
+        
 
 
 
@@ -309,6 +309,7 @@ def verify_workspace_login(user_id, password):
                     "Workspace isolation verification failed."
                 )
 
+        return True
 
 
     finally:

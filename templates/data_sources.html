@@ -1,4 +1,4 @@
-
+﻿
 {% extends "base.html" %}
 {% block title %}Data Sources{% endblock %}
 
@@ -49,7 +49,11 @@
 
 .ds-column {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(0, 1fr)
+        minmax(0, 0.8fr)
+        auto;
     gap: 12px;
     align-items: end;
     margin-bottom: 12px;
@@ -117,7 +121,6 @@
     display: none !important;
 }
 
-
 @media (max-width: 650px) {
     .ds-column {
         grid-template-columns: 1fr;
@@ -131,7 +134,7 @@
 
 <div class="ds-page">
 
-    <!-- EXISTING DATA SOURCE INFORMATION -->
+    <!-- DATA SOURCE INFORMATION -->
     <section class="card">
         <h1>Data Sources</h1>
 
@@ -160,10 +163,8 @@
         </p>
     </section>
 
-
     <!-- CREATE TABLE -->
     <section class="card">
-
         <h2>Create Table</h2>
 
         <p class="muted">
@@ -175,13 +176,12 @@
         <form id="createTableForm" class="ds-form">
 
             <div class="ds-field">
-                <label for="tableName">
-                    Table Name
-                </label>
+                <label for="tableName">Table Name</label>
 
                 <input
                     type="text"
                     id="tableName"
+                    name="table_name"
                     placeholder="Example: Students"
                     pattern="[A-Za-z][A-Za-z0-9_]*"
                     maxlength="128"
@@ -194,7 +194,6 @@
             <div id="columnsContainer"></div>
 
             <div class="ds-actions">
-
                 <button
                     type="button"
                     id="addColumnBtn"
@@ -210,7 +209,6 @@
                 >
                     Create Table
                 </button>
-
             </div>
 
             <div
@@ -221,9 +219,76 @@
             ></div>
 
         </form>
-
     </section>
 
+    <!-- ADD COLUMN TO EXISTING TABLE -->
+    <section class="card">
+        <h2>Add Column to Existing Table</h2>
+
+        <p class="muted">
+            Add a new nullable column to a table in your private workspace.
+            Existing records will contain NULL in the new column.
+        </p>
+
+        <form id="addColumnForm" class="ds-form">
+
+            <div class="ds-field">
+                <label for="addColumnTableSelect">Select Table</label>
+
+                <select
+                    id="addColumnTableSelect"
+                    name="table_name"
+                    required
+                >
+                    <option value="">Select a table</option>
+                </select>
+            </div>
+
+            <div class="ds-field">
+                <label for="newColumnName">New Column Name</label>
+
+                <input
+                    type="text"
+                    id="newColumnName"
+                    name="column_name"
+                    placeholder="Example: Salary"
+                    pattern="[A-Za-z][A-Za-z0-9_]*"
+                    maxlength="128"
+                    required
+                >
+            </div>
+
+            <div class="ds-field">
+                <label for="newColumnType">Data Type</label>
+
+                <select
+                    id="newColumnType"
+                    name="data_type"
+                    required
+                ></select>
+            </div>
+
+            <div class="ds-actions">
+                <button
+                    type="submit"
+                    id="addExistingColumnBtn"
+                    class="ds-btn ds-btn-primary"
+                >
+                    Add Column
+                </button>
+            </div>
+
+            <div
+                id="addColumnMessage"
+                class="ds-message"
+                role="status"
+                aria-live="polite"
+            ></div>
+
+        </form>
+    </section>
+
+    <!-- MY TABLES -->
     <section class="card">
         <h2>My Tables</h2>
 
@@ -260,7 +325,11 @@
             <div class="ds-field">
                 <label for="insertTableSelect">Select Table</label>
 
-                <select id="insertTableSelect" required>
+                <select
+                    id="insertTableSelect"
+                    name="table_name"
+                    required
+                >
                     <option value="">Select a table</option>
                 </select>
             </div>
@@ -303,9 +372,14 @@
         </p>
 
         <div class="ds-form">
-                <div class="ds-field">
+
+            <div class="ds-field">
                 <label for="viewTableSelect">Select Table</label>
-                <select id="viewTableSelect">
+
+                <select
+                    id="viewTableSelect"
+                    name="view_table_name"
+                >
                     <option value="">Select a table</option>
                 </select>
             </div>
@@ -350,7 +424,6 @@
                     ></div>
 
                     <div class="ds-actions">
-
                         <button
                             type="submit"
                             id="saveEditBtn"
@@ -366,28 +439,29 @@
                         >
                             Cancel
                         </button>
-
                     </div>
 
                 </form>
             </div>
-
 
             <div
                 id="recordsContainer"
                 style="overflow-x:auto;"
                 aria-live="polite"
             ></div>
+
         </div>
     </section>
-
-
 
 </div>
 
 <script>
 (function () {
     "use strict";
+
+    // ============================================
+    // COMMON ELEMENTS AND CONFIGURATION
+    // ============================================
 
     const form = document.getElementById("createTableForm");
     const container = document.getElementById("columnsContainer");
@@ -396,20 +470,65 @@
     const messageBox = document.getElementById("tableMessage");
 
     const allowedTypes = [
+        // Integer
         "INT",
+        "TINYINT",
         "BIGINT",
         "SMALLINT",
-        "BIT",
-        "DATE",
-        "DATETIME2",
+
+        // Numeric
+        "NUMERIC(4)",
+        "NUMERIC(5,2)",
+        "NUMERIC(4,2)",
+        "NUMERIC(6,2)",
+        "NUMERIC(10,2)",
+        "NUMERIC(18,2)",
+        "NUMERIC(18,4)",
+
+        // Other numeric
         "FLOAT",
+        "REAL",
+
+        // Money
+        "MONEY",
+        "SMALLMONEY",
+
+        // Decimal
+        "DECIMAL(4)",
+        "DECIMAL(4,2)",
+        "DECIMAL(6,2)",
+        "DECIMAL(5,2)",
         "DECIMAL(10,2)",
         "DECIMAL(18,2)",
+        "DECIMAL(18,4)",
+
+        // Text
+        "CHAR(10)",
+        "VARCHAR(10)",
         "VARCHAR(50)",
         "VARCHAR(100)",
         "VARCHAR(255)",
+
+        // Unicode text
+        "NCHAR(10)",
+        "NVARCHAR(10)",
+        "NVARCHAR(50)",
         "NVARCHAR(100)",
-        "NVARCHAR(255)"
+        "NVARCHAR(255)",
+
+        // Date and time
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "SMALLDATETIME",
+        "DATETIME2",
+        "DATETIMEOFFSET",
+
+        // Other
+        "BIT",
+        "UNIQUEIDENTIFIER",
+        "BINARY(16)",
+        "VARBINARY(10)"
     ];
 
     const maxColumns = 50;
@@ -419,36 +538,154 @@
         messageBox.className = "ds-message " + type;
     }
 
+    // ============================================
+    // ADD COLUMN TO EXISTING TABLE
+    // ============================================
+
+    const addColumnForm = document.getElementById("addColumnForm");
+    const addColumnTableSelect = document.getElementById("addColumnTableSelect");
+    const newColumnName = document.getElementById("newColumnName");
+    const newColumnType = document.getElementById("newColumnType");
+    const addExistingColumnBtn = document.getElementById("addExistingColumnBtn");
+    const addColumnMessage = document.getElementById("addColumnMessage");
+
+    allowedTypes.forEach(function (type) {
+        const option = document.createElement("option");
+        option.value = type;
+        option.textContent = type;
+        newColumnType.appendChild(option);
+    });
+
+    function showAddColumnMessage(message, type) {
+        addColumnMessage.textContent = message;
+        addColumnMessage.className = "ds-message " + type;
+    }
+
+    addColumnForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const tableName = addColumnTableSelect.value;
+        const columnName = newColumnName.value.trim();
+        const dataType = newColumnType.value;
+
+        if (!tableName) {
+            showAddColumnMessage("Please select a table.", "error");
+            return;
+        }
+
+        if (!/^[A-Za-z][A-Za-z0-9_]{0,127}$/.test(columnName)) {
+            showAddColumnMessage("Enter a valid column name.", "error");
+            return;
+        }
+
+        addExistingColumnBtn.disabled = true;
+        addExistingColumnBtn.textContent = "Adding...";
+
+        try {
+            const response = await fetch(
+                "{{ url_for('workspace_add_column') }}",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({
+                        table_name: tableName,
+                        column_name: columnName,
+                        data_type: dataType
+                    })
+                }
+            );
+
+            const contentType = response.headers.get("content-type") || "";
+
+            if (!contentType.includes("application/json")) {
+                throw new Error(
+                    "Unexpected server response. Please sign in again."
+                );
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Unable to add column.");
+            }
+
+            showAddColumnMessage(
+                "Column '" + result.column +
+                "' added successfully to '" + result.table + "'.",
+                "success"
+            );
+
+            newColumnName.value = "";
+            newColumnType.selectedIndex = 0;
+
+            await loadMyTables();
+            await loadInsertTables();
+            await loadViewTables();
+
+            if (viewTableSelect.value === tableName) {
+                await loadRecords();
+            }
+
+        } catch (error) {
+            showAddColumnMessage(error.message, "error");
+
+        } finally {
+            addExistingColumnBtn.disabled = false;
+            addExistingColumnBtn.textContent = "Add Column";
+        }
+    });
+
+    // ============================================
+    // CREATE TABLE - DYNAMIC COLUMNS
+    // ============================================
+
+    let columnFieldCounter = 0;
+
     function addColumn(name = "", type = "INT") {
         if (container.children.length >= maxColumns) {
             showMessage("Maximum 50 columns allowed.", "error");
             return;
         }
 
+        const fieldNumber = ++columnFieldCounter;
+
         const row = document.createElement("div");
         row.className = "ds-column";
 
+        // COLUMN NAME
         const nameField = document.createElement("div");
         nameField.className = "ds-field";
 
         const nameLabel = document.createElement("label");
         nameLabel.textContent = "Column Name";
+        nameLabel.htmlFor = "table-column-name-" + fieldNumber;
 
         const nameInput = document.createElement("input");
         nameInput.type = "text";
+        nameInput.id = "table-column-name-" + fieldNumber;
+        nameInput.name = "column_name_" + fieldNumber;
         nameInput.className = "ds-column-name";
         nameInput.placeholder = "Example: StudentID";
         nameInput.maxLength = 128;
         nameInput.pattern = "[A-Za-z][A-Za-z0-9_]*";
         nameInput.required = true;
+        nameInput.value = name;
 
+        // DATA TYPE
         const typeField = document.createElement("div");
         typeField.className = "ds-field";
 
         const typeLabel = document.createElement("label");
         typeLabel.textContent = "Data Type";
+        typeLabel.htmlFor = "table-column-type-" + fieldNumber;
 
         const typeSelect = document.createElement("select");
+        typeSelect.id = "table-column-type-" + fieldNumber;
+        typeSelect.name = "column_type_" + fieldNumber;
         typeSelect.className = "ds-column-type";
 
         allowedTypes.forEach(function (allowedType) {
@@ -463,6 +700,35 @@
             typeSelect.appendChild(option);
         });
 
+        // PRIMARY KEY
+        const primaryKeyField = document.createElement("div");
+        primaryKeyField.className = "ds-field";
+
+        const primaryKeyLabel = document.createElement("label");
+        primaryKeyLabel.textContent = "Primary Key";
+        primaryKeyLabel.htmlFor =
+            "table-column-primary-key-" + fieldNumber;
+
+        const primaryKeySelect = document.createElement("select");
+        primaryKeySelect.id =
+            "table-column-primary-key-" + fieldNumber;
+        primaryKeySelect.name =
+            "column_primary_key_" + fieldNumber;
+        primaryKeySelect.className = "ds-column-primary-key";
+
+        const noPrimaryKeyOption = document.createElement("option");
+        noPrimaryKeyOption.value = "no";
+        noPrimaryKeyOption.textContent = "No";
+        primaryKeySelect.appendChild(noPrimaryKeyOption);
+
+        const primaryKeyOption = document.createElement("option");
+        primaryKeyOption.value = "yes";
+        primaryKeyOption.textContent = "Yes";
+        primaryKeySelect.appendChild(primaryKeyOption);
+
+        primaryKeyField.append(primaryKeyLabel, primaryKeySelect);
+
+        // REMOVE BUTTON
         const removeButton = document.createElement("button");
         removeButton.type = "button";
         removeButton.className = "ds-btn ds-btn-danger";
@@ -484,7 +750,13 @@
         nameField.append(nameLabel, nameInput);
         typeField.append(typeLabel, typeSelect);
 
-        row.append(nameField, typeField, removeButton);
+        row.append(
+            nameField,
+            typeField,
+            primaryKeyField,
+            removeButton
+        );
+
         container.appendChild(row);
 
         addButton.disabled = container.children.length >= maxColumns;
@@ -494,6 +766,10 @@
         addColumn();
     });
 
+    // ============================================
+    // CREATE TABLE SUBMISSION
+    // ============================================
+
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
 
@@ -502,13 +778,39 @@
             .value.trim();
 
         const columns = [];
+        let primaryKey = null;
 
         container.querySelectorAll(".ds-column").forEach(function (row) {
+            const name = row.querySelector(".ds-column-name").value.trim();
+
             columns.push({
-                name: row.querySelector(".ds-column-name").value.trim(),
+                name: name,
                 type: row.querySelector(".ds-column-type").value
             });
+
+            if (
+                row.querySelector(".ds-column-primary-key").value === "yes"
+            ) {
+                if (primaryKey !== null) {
+                    primaryKey = "__MULTIPLE_PRIMARY_KEYS__";
+                } else {
+                    primaryKey = name;
+                }
+            }
         });
+
+        if (primaryKey === "__MULTIPLE_PRIMARY_KEYS__") {
+            showMessage("Select only one primary-key column.", "error");
+            return;
+        }
+
+        if (primaryKey === null) {
+            showMessage(
+                "Select one primary-key column to enable editing and deleting records.",
+                "error"
+            );
+            return;
+        }
 
         const names = columns.map(function (column) {
             return column.name.toLowerCase();
@@ -556,7 +858,10 @@
             form.reset();
             container.replaceChildren();
             addColumn();
-            loadMyTables();
+
+            await loadMyTables();
+            await loadInsertTables();
+            await loadViewTables();
 
         } catch (error) {
             showMessage(error.message, "error");
@@ -567,9 +872,72 @@
         }
     });
 
+    // ============================================
+    // WORKSPACE TABLE MANAGEMENT
+    // ============================================
 
     const myTablesContainer = document.getElementById("myTablesContainer");
     const refreshTablesBtn = document.getElementById("refreshTablesBtn");
+
+    async function tableManagementApi(endpoint, body) {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify(body)
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+            throw new Error(
+                "Unexpected response. Please sign in again."
+            );
+        }
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Operation failed.");
+        }
+
+        return result;
+    }
+
+    async function refreshWorkspaceTables() {
+        await loadMyTables();
+        await loadInsertTables();
+        await loadViewTables();
+    }
+
+    function createManagementButton(label, className, onClick) {
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.className = "ds-btn " + className;
+        button.textContent = label;
+        button.addEventListener("click", onClick);
+
+        return button;
+    }
+
+    async function performTableAction(action, body, successMessage) {
+        try {
+            await tableManagementApi(action, body);
+            alert(successMessage);
+            await refreshWorkspaceTables();
+
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // ============================================
+    // LOAD MY TABLES
+    // ============================================
 
     async function loadMyTables() {
         myTablesContainer.textContent = "Loading your tables...";
@@ -581,22 +949,41 @@
                 { credentials: "same-origin" }
             );
 
+            const result = await response.json();
+
             if (!response.ok) {
-                throw new Error("Unable to load tables.");
+                throw new Error(
+                    result.error || "Unable to load tables."
+                );
             }
 
-            const result = await response.json();
             myTablesContainer.replaceChildren();
 
+            // Update Add Column dropdown.
+            addColumnTableSelect.replaceChildren();
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Select a table";
+            addColumnTableSelect.appendChild(placeholder);
+
+            result.tables.forEach(function (table) {
+                const option = document.createElement("option");
+                option.value = table.name;
+                option.textContent = table.name;
+                addColumnTableSelect.appendChild(option);
+            });
+
             if (!result.tables.length) {
-                myTablesContainer.textContent =
-                    "No tables created yet.";
+                myTablesContainer.textContent = "No tables created yet.";
                 return;
             }
 
             result.tables.forEach(function (table) {
                 const details = document.createElement("details");
-                details.style.marginTop = "14px";
+                details.open = true;
+                details.style.marginTop = "18px";
+                
 
                 const summary = document.createElement("summary");
                 summary.textContent =
@@ -606,13 +993,202 @@
 
                 const list = document.createElement("ul");
 
+                // COLUMN INFORMATION AND ACTIONS
                 table.columns.forEach(function (column) {
                     const item = document.createElement("li");
-                    item.textContent = column.name + " — " + column.type;
+                    item.style.marginBottom = "12px";
+
+                    const info = document.createElement("div");
+                    info.textContent =
+                        column.name + " — " + column.type;
+
+                    const actions = document.createElement("div");
+                    actions.className = "ds-actions";
+
+                    // RENAME COLUMN
+                    const renameColumnBtn = createManagementButton(
+                        "Rename",
+                        "ds-btn-secondary",
+                        async function () {
+                            const newName = window.prompt(
+                                "Enter the new column name:",
+                                column.name
+                            );
+
+                            if (newName === null || !newName.trim()) {
+                                return;
+                            }
+
+                            await performTableAction(
+                                "{{ url_for('workspace_rename_column') }}",
+                                {
+                                    table_name: table.name,
+                                    old_column_name: column.name,
+                                    new_column_name: newName.trim()
+                                },
+                                "Column renamed successfully."
+                            );
+                        }
+                    );
+
+                    // MODIFY COLUMN
+                    const modifyColumnBtn = createManagementButton(
+                        "Modify",
+                        "ds-btn-secondary",
+                        async function () {
+                            const typeOptions = allowedTypes.join(", ");
+
+                            const newType = window.prompt(
+                                "Enter the new data type:\n" + typeOptions,
+                                column.type.toUpperCase()
+                            );
+
+                            if (newType === null) {
+                                return;
+                            }
+
+                            const selectedType =
+                                newType.trim().toUpperCase();
+
+                            if (!allowedTypes.includes(selectedType)) {
+                                alert(
+                                    "Please enter one of the supported data types."
+                                );
+                                return;
+                            }
+
+                            const nullableAnswer = window.prompt(
+                                "Should this column allow NULL values?\nEnter YES or NO:",
+                                "YES"
+                            );
+
+                            if (nullableAnswer === null) {
+                                return;
+                            }
+
+                            const nullableText =
+                                nullableAnswer.trim().toLowerCase();
+
+                            if (!["yes", "no"].includes(nullableText)) {
+                                alert("Please enter YES or NO.");
+                                return;
+                            }
+
+                            await performTableAction(
+                                "{{ url_for('workspace_modify_column') }}",
+                                {
+                                    table_name: table.name,
+                                    column_name: column.name,
+                                    data_type: selectedType,
+                                    nullable: nullableText === "yes"
+                                },
+                                "Column modified successfully."
+                            );
+                        }
+                    );
+
+                    // DELETE COLUMN
+                    const deleteColumnBtn = createManagementButton(
+                        "Delete",
+                        "ds-btn-danger",
+                        async function () {
+                            const confirmed = window.confirm(
+                                "Permanently delete column '" +
+                                column.name + "' from table '" +
+                                table.name + "'?"
+                            );
+
+                            if (!confirmed) {
+                                return;
+                            }
+
+                            await performTableAction(
+                                "{{ url_for('workspace_delete_column') }}",
+                                {
+                                    table_name: table.name,
+                                    column_name: column.name
+                                },
+                                "Column deleted successfully."
+                            );
+                        }
+                    );
+
+                    actions.append(
+                        renameColumnBtn,
+                        modifyColumnBtn,
+                        deleteColumnBtn
+                    );
+
+                    item.append(info, actions);
                     list.appendChild(item);
                 });
 
-                details.append(summary, list);
+                // TABLE MANAGEMENT BUTTONS
+                const tableActions = document.createElement("div");
+                tableActions.className = "ds-actions";
+                tableActions.style.margin = "15px 0";
+
+                // RENAME TABLE
+                const renameTableBtn = createManagementButton(
+                    "Rename Table",
+                    "ds-btn-secondary",
+                    async function () {
+                        const newName = window.prompt(
+                            "Enter the new table name:",
+                            table.name
+                        );
+
+                        if (newName === null || !newName.trim()) {
+                            return;
+                        }
+
+                        await performTableAction(
+                            "{{ url_for('workspace_rename_table') }}",
+                            {
+                                table_name: table.name,
+                                new_table_name: newName.trim()
+                            },
+                            "Table renamed successfully."
+                        );
+                    }
+                );
+
+                // DELETE TABLE
+                const deleteTableBtn = createManagementButton(
+                    "Delete Table",
+                    "ds-btn-danger",
+                    async function () {
+                        const confirmed = window.confirm(
+                            "WARNING: This permanently deletes table '" +
+                            table.name +
+                            "' and all its records. Continue?"
+                        );
+
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        await performTableAction(
+                            "{{ url_for('workspace_delete_table') }}",
+                            {
+                                table_name: table.name
+                            },
+                            "Table deleted successfully."
+                        );
+                    }
+                );
+
+                tableActions.append(
+                    renameTableBtn,
+                    deleteTableBtn
+                );
+
+                details.append(
+                    summary,
+                    tableActions,
+                    list
+                );
+
                 myTablesContainer.appendChild(details);
             });
 
@@ -625,9 +1201,6 @@
     }
 
     refreshTablesBtn.addEventListener("click", loadMyTables);
-    loadMyTables();
-
-
 
     // ============================================
     // INSERT RECORDS
@@ -635,7 +1208,8 @@
 
     const insertForm = document.getElementById("insertRecordForm");
     const insertTableSelect = document.getElementById("insertTableSelect");
-    const insertFieldsContainer = document.getElementById("insertFieldsContainer");
+    const insertFieldsContainer =
+        document.getElementById("insertFieldsContainer");
     const insertRecordBtn = document.getElementById("insertRecordBtn");
     const insertMessage = document.getElementById("insertMessage");
 
@@ -686,27 +1260,31 @@
         insertMessage.className = "ds-message";
         insertMessage.textContent = "";
 
-        const table = insertTables.find(function (item) {
+        const selectedTable = insertTables.find(function (item) {
             return item.name === insertTableSelect.value;
         });
 
-        if (!table) {
+        if (!selectedTable) {
             return;
         }
 
-        table.columns.forEach(function (column) {
+        selectedTable.columns.forEach(function (column, index) {
             const field = document.createElement("div");
             field.className = "ds-field";
 
             const label = document.createElement("label");
-            label.textContent = column.name + " (" + column.type + ")";
+            label.textContent =
+                column.name + " (" + column.type + ")";
+            label.htmlFor = "insert-field-" + index;
 
             const input = document.createElement("input");
             input.type = "text";
+            input.id = "insert-field-" + index;
+            input.name = column.name;
             input.dataset.columnName = column.name;
             input.dataset.columnType = column.type;
             input.placeholder = "Enter " + column.name;
-            input.required = true;
+            input.required = false;
 
             field.append(label, input);
             insertFieldsContainer.appendChild(field);
@@ -725,16 +1303,23 @@
 
         const values = {};
 
-        insertFieldsContainer.querySelectorAll("input").forEach(function (input) {
-            const type = input.dataset.columnType.toUpperCase();
-            const rawValue = input.value.trim();
+        insertFieldsContainer.querySelectorAll("input").forEach(
+            function (input) {
+                const type = input.dataset.columnType.toUpperCase();
+                const rawValue = input.value.trim();
 
-            if (type === "BIT") {
-                values[input.dataset.columnName] = rawValue === "1" ? 1 : 0;
-            } else {
-                values[input.dataset.columnName] = rawValue;
+                if (rawValue === "") {
+                    values[input.dataset.columnName] = null;
+                } else if (rawValue.toUpperCase() === "NULL") {
+                    values[input.dataset.columnName] = null;
+                } else if (type === "BIT") {
+                    values[input.dataset.columnName] =
+                        rawValue === "1" ? 1 : 0;
+                } else {
+                    values[input.dataset.columnName] = rawValue;
+                }
             }
-        });
+        );
 
         insertRecordBtn.disabled = true;
         insertRecordBtn.textContent = "Inserting...";
@@ -756,11 +1341,13 @@
                 }
             );
 
-            const contentType = response.headers.get("content-type") || "";
+            const contentType =
+                response.headers.get("content-type") || "";
 
             if (!contentType.includes("application/json")) {
                 throw new Error(
-                    "Server returned an unexpected response. Please sign in again if your session expired."
+                    "Server returned an unexpected response. " +
+                    "Please sign in again if your session expired."
                 );
             }
 
@@ -773,13 +1360,16 @@
             }
 
             showInsertMessage(
-                "Record inserted successfully into '" + result.table + "'.",
+                "Record inserted successfully into '" +
+                result.table + "'.",
                 "success"
             );
 
-            insertFieldsContainer.querySelectorAll("input").forEach(function (input) {
-                input.value = "";
-            });
+            insertFieldsContainer.querySelectorAll("input").forEach(
+                function (input) {
+                    input.value = "";
+                }
+            );
 
         } catch (error) {
             showInsertMessage(error.message, "error");
@@ -795,18 +1385,15 @@
         insertMessage.textContent = "";
     });
 
-    // Load available tables when the page opens.
-    loadInsertTables();
-
-
-
     // ============================================
     // VIEW RECORDS
     // ============================================
 
     const viewTableSelect = document.getElementById("viewTableSelect");
-    const refreshRecordsBtn = document.getElementById("refreshRecordsBtn");
-    const recordsContainer = document.getElementById("recordsContainer");
+    const refreshRecordsBtn =
+        document.getElementById("refreshRecordsBtn");
+    const recordsContainer =
+        document.getElementById("recordsContainer");
     const recordCount = document.getElementById("recordCount");
 
     async function loadViewTables() {
@@ -892,9 +1479,7 @@
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                result.error || "Request failed."
-            );
+            throw new Error(result.error || "Request failed.");
         }
 
         return result;
@@ -930,7 +1515,11 @@
             const input = document.createElement("input");
 
             input.type = "text";
+            input.id = "edit-field-" + index;
+            input.name = name;
             input.dataset.column = name;
+
+            label.htmlFor = input.id;
 
             const value = row[index];
 
@@ -974,10 +1563,7 @@
         });
 
         if (!Object.keys(values).length) {
-            recordMessage(
-                "No changes to save.",
-                "error"
-            );
+            recordMessage("No changes to save.", "error");
             return;
         }
 
@@ -1012,7 +1598,6 @@
         }
     });
 
-
     // ============================================
     // VIEW RECORDS WITH EDIT AND DELETE BUTTONS
     // ============================================
@@ -1031,8 +1616,7 @@
         }
 
         if (!tableName) {
-            recordsContainer.textContent =
-                "Please select a table.";
+            recordsContainer.textContent = "Please select a table.";
             return;
         }
 
@@ -1077,9 +1661,7 @@
                 keyResponse.headers.get("content-type") || "";
 
             if (!keyContentType.includes("application/json")) {
-                throw new Error(
-                    "Unable to load primary keys."
-                );
+                throw new Error("Unable to load primary keys.");
             }
 
             const keyResult = await keyResponse.json();
@@ -1174,7 +1756,6 @@
                     actionCell.style.whiteSpace = "nowrap";
 
                     // EDIT BUTTON
-
                     const editBtn = document.createElement("button");
 
                     editBtn.type = "button";
@@ -1182,25 +1763,20 @@
                         "ds-btn ds-btn-secondary";
                     editBtn.textContent = "Edit";
 
-                    editBtn.addEventListener(
-                        "click",
-                        function () {
-                            openEdit(
-                                tableName,
-                                result.columns,
-                                record,
-                                primaryKeys
-                            );
-                        }
-                    );
+                    editBtn.addEventListener("click", function () {
+                        openEdit(
+                            tableName,
+                            result.columns,
+                            record,
+                            primaryKeys
+                        );
+                    });
 
                     // DELETE BUTTON
-
                     const deleteBtn = document.createElement("button");
 
                     deleteBtn.type = "button";
-                    deleteBtn.className =
-                        "ds-btn ds-btn-danger";
+                    deleteBtn.className = "ds-btn ds-btn-danger";
                     deleteBtn.textContent = "Delete";
                     deleteBtn.style.marginLeft = "8px";
 
@@ -1243,10 +1819,7 @@
                                 await loadRecords(true);
 
                             } catch (error) {
-                                recordMessage(
-                                    error.message,
-                                    "error"
-                                );
+                                recordMessage(error.message, "error");
 
                                 deleteBtn.disabled = false;
                                 deleteBtn.textContent = "Delete";
@@ -1272,10 +1845,8 @@
         }
     }
 
-
-
     // ============================================
-    // VIEW RECORDS EVENT LISTENERS
+    // EVENT LISTENERS AND INITIAL LOAD
     // ============================================
 
     viewTableSelect.addEventListener("change", function () {
@@ -1286,10 +1857,12 @@
         loadRecords();
     });
 
-    // Load tables for View Records
+    // Load all workspace information.
+    loadMyTables();
+    loadInsertTables();
     loadViewTables();
 
-    // Start with one column.
+    // Start Create Table with one column.
     addColumn();
 
 })();

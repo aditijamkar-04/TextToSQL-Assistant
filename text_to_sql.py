@@ -3,6 +3,7 @@ import re
 import requests
 
 
+from groq_client import generate_ai_response
 from sql_service import execute_sql
 from workspace_schema import get_database_schema
 
@@ -121,22 +122,7 @@ STRICT ACCURACY RULES:
 Return only the explanation.
 """
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0,
-                "num_predict": 500,
-            },
-        },
-        timeout=90,
-    )
-    response.raise_for_status()
-
-    explanation = response.json().get("response", "").strip()
+    explanation = generate_ai_response(prompt, max_tokens=1200)
 
     if not explanation:
         raise ValueError("The AI returned an empty query explanation.")
@@ -195,8 +181,9 @@ RULES:
 8. Do not ask for clarification if the user's intent is reasonably clear.
 9. Return only SQL, or CLARIFY: followed by a question.
 10. Use only tables and columns listed in the workspace schema.
-11. Always use the fully qualified table name
-    [workspace_schema].[table_name].
+11. Use the table name without the  ' schema prefix.
+    The authenticated user's SQL Server login already has
+    the correct private workspace as its default schema.
 12. Never access dbo or another user's workspace.
 13. If the requested table or column does not exist,
     return CLARIFY: followed by a helpful question.
@@ -247,19 +234,7 @@ User question:
 Return the SQL query or a CLARIFY question.
 """
 
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {"temperature": 0},
-        },
-        timeout=180,
-    )
-    response.raise_for_status()
-
-    answer = response.json()["response"].strip()
+    answer = generate_ai_response(prompt, max_tokens=1200)
 
     if answer.upper().startswith("CLARIFY:"):
         return {
@@ -282,6 +257,21 @@ Return the SQL query or a CLARIFY question.
         raise ValueError("The AI did not return a SQL SELECT query.")
 
     sql = answer[match.start():].strip()
+
+    # Remove the private schema prefix from displayed SQL.
+    workspace_schema = f"workspace_{int(user_id)}"
+
+    print("DEBUG USER ID:", user_id)
+    print("DEBUG WORKSPACE SCHEMA:", repr(workspace_schema))
+
+    sql = re.sub(
+        rf"\[?{re.escape(workspace_schema)}\]?\s*\.\s*\[?([A-Za-z_][A-Za-z0-9_]*)\]?",
+        r"\1",
+        sql,
+        flags=re.IGNORECASE,
+    )
+
+    print("DEBUG SQL AFTER CLEANUP:", sql)
 
     return {
         "status": "sql_generated",

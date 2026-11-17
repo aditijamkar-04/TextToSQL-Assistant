@@ -1,4 +1,4 @@
-
+﻿
 import os
 import sqlite3
 from functools import wraps
@@ -6,11 +6,17 @@ from pathlib import Path
 
 from workspace_tables import (
     create_workspace_table,
+    add_workspace_column,
     list_workspace_tables,
     insert_workspace_record,
     view_workspace_records,
     modify_workspace_record,
     get_workspace_record_keys,
+    delete_workspace_column,
+    rename_workspace_column,
+    modify_workspace_column,
+    rename_workspace_table,
+    delete_workspace_table,
 )
 
 import requests
@@ -26,6 +32,9 @@ from flask import (
     url_for,
 )
 from flask_wtf.csrf import CSRFProtect
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
 from auth_db import (
     init_auth_db,
@@ -56,8 +65,7 @@ from workspace_credentials import get_workspace_credentials
 # APPLICATION CONFIGURATION
 # --------------------------------------------------
 
-BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
+
 
 secret_key = os.getenv("FLASK_SECRET_KEY")
 
@@ -268,14 +276,26 @@ def signin():
                         user["user_id"]
                     )
 
-                except ValueError:
+                    app.logger.warning(
+                        "DEBUG SIGN-IN: user_id=%s, username=%s, role=%s",
+                        user["user_id"],
+                        user["username"],
+                        user["role"],
+                    )
+
+                except ValueError as exc:
+                    app.logger.warning(
+                        "Workspace check failed for user ID %s: %s",
+                        user["user_id"],
+                        str(exc),
+                    )
                     flash(
                         "Your database workspace is not ready yet. "
                         "Please contact the administrator.",
                         "error",
                     )
                     return render_template("signin.html"), 503
-
+                
                 except Exception:
                     app.logger.exception(
                         "Unable to check workspace for user ID %s",
@@ -487,15 +507,6 @@ def ask():
 
     # Hosted demo safety switch.
     # When enabled, do not call Ollama or execute SQL.
-    if os.getenv("DEMO_MODE", "0").strip() == "1":
-        flash(
-            "Hosted demo mode is active. Real AI generation "
-            "and database execution are disabled.",
-            "info",
-        )
-        return redirect(url_for("user_home"))
-
-
 
     result = None
     error = None
@@ -930,6 +941,267 @@ def workspace_create_table():
 
 
 
+
+# --------------------------------------------------
+# ADD COLUMN TO EXISTING WORKSPACE TABLE
+# --------------------------------------------------
+
+@app.route("/workspace/add-column", methods=["POST"])
+@role_required("user")
+def workspace_add_column():
+
+    if os.getenv("DEMO_MODE", "0").strip() == "1":
+        return {
+            "error": "Adding columns is disabled in demo mode."
+        }, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {"error": "Invalid request body."}, 400
+
+    if set(data) != {
+        "table_name",
+        "column_name",
+        "data_type",
+    }:
+        return {
+            "error": (
+                "Provide table_name, column_name and data_type."
+            )
+        }, 400
+
+    try:
+        result = add_workspace_column(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+            column_name=data["column_name"],
+            data_type=data["data_type"],
+        )
+
+        return result, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception(
+            "Unable to add column to workspace table."
+        )
+
+        return {
+            "error": "Unable to add column. Check server logs."
+        }, 500
+
+
+
+# =========================================================
+# WORKSPACE TABLE MANAGEMENT ROUTES
+# =========================================================
+
+def workspace_management_demo_mode():
+    return os.getenv("DEMO_MODE", "0").strip() == "1"
+
+
+@app.route("/workspace/delete-column", methods=["POST"])
+@role_required("user")
+def workspace_delete_column():
+
+    if workspace_management_demo_mode():
+        return {"error": "This feature is unavailable in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {
+        "table_name", "column_name"
+    }:
+        return {"error": "Provide table_name and column_name."}, 400
+
+    try:
+        delete_workspace_column(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+            column_name=data["column_name"],
+        )
+        return {"message": "Column deleted successfully."}, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Delete column failed.")
+        return {"error": "Could not delete column. Check server logs."}, 500
+
+
+@app.route("/workspace/rename-column", methods=["POST"])
+@role_required("user")
+def workspace_rename_column():
+
+    if workspace_management_demo_mode():
+        return {"error": "This feature is unavailable in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {
+        "table_name", "old_column_name", "new_column_name"
+    }:
+        return {
+            "error": "Provide table_name, old_column_name and new_column_name."
+        }, 400
+
+    try:
+        rename_workspace_column(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+            old_column_name=data["old_column_name"],
+            new_column_name=data["new_column_name"],
+        )
+        return {"message": "Column renamed successfully."}, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Rename column failed.")
+        return {"error": "Could not rename column. Check server logs."}, 500
+
+
+@app.route("/workspace/modify-column", methods=["POST"])
+@role_required("user")
+def workspace_modify_column():
+
+    if workspace_management_demo_mode():
+        return {"error": "This feature is unavailable in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {
+        "table_name", "column_name", "data_type", "nullable"
+    }:
+        return {
+            "error": "Provide table_name, column_name, data_type and nullable."
+        }, 400
+
+    if not isinstance(data["nullable"], bool):
+        return {"error": "nullable must be true or false."}, 400
+
+    try:
+        modify_workspace_column(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+            column_name=data["column_name"],
+            data_type=data["data_type"],
+            nullable=data["nullable"],
+        )
+        return {"message": "Column modified successfully."}, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Modify column failed.")
+        return {"error": "Could not modify column. Check server logs."}, 500
+
+
+@app.route("/workspace/rename-table", methods=["POST"])
+@role_required("user")
+def workspace_rename_table():
+
+    if workspace_management_demo_mode():
+        return {"error": "This feature is unavailable in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {
+        "table_name", "new_table_name"
+    }:
+        return {
+            "error": "Provide table_name and new_table_name."
+        }, 400
+
+    try:
+        rename_workspace_table(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+            new_table_name=data["new_table_name"],
+        )
+        return {"message": "Table renamed successfully."}, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Rename table failed.")
+        return {"error": "Could not rename table. Check server logs."}, 500
+
+
+@app.route("/workspace/delete-table", methods=["POST"])
+@role_required("user")
+def workspace_delete_table():
+
+    if workspace_management_demo_mode():
+        return {"error": "This feature is unavailable in demo mode."}, 403
+
+    if not request.is_json:
+        return {"error": "JSON request required."}, 415
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict) or set(data) != {"table_name"}:
+        return {"error": "Provide table_name."}, 400
+
+    try:
+        delete_workspace_table(
+            user_id=session["user_id"],
+            table_name=data["table_name"],
+        )
+        return {"message": "Table deleted successfully."}, 200
+
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+
+    except PermissionError:
+        return {"error": "Workspace access denied."}, 403
+
+    except Exception:
+        app.logger.exception("Delete table failed.")
+        return {"error": "Could not delete table. Check server logs."}, 500
+
+
+
+
+
+  
 
 @app.route("/workspace/my-tables", methods=["GET"])
 @role_required("user")
