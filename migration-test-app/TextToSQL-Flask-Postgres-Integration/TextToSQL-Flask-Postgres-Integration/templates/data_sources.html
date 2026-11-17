@@ -1,0 +1,1298 @@
+
+{% extends "base.html" %}
+{% block title %}Data Sources{% endblock %}
+
+{% block content %}
+
+<style>
+.ds-page {
+    width: 100%;
+    max-width: 1050px;
+    margin: 0 auto;
+    padding-bottom: 30px;
+}
+
+.ds-page .card {
+    margin-bottom: 22px;
+}
+
+.ds-page .muted {
+    color: var(--muted, #64748b);
+}
+
+.ds-form {
+    display: grid;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.ds-field {
+    display: grid;
+    gap: 7px;
+}
+
+.ds-field label {
+    font-weight: 600;
+}
+
+.ds-field input,
+.ds-field select {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 9px;
+    background: var(--surface, #ffffff);
+    color: var(--text, #172033);
+    font: inherit;
+}
+
+.ds-column {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 12px;
+}
+
+.ds-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.ds-btn {
+    padding: 11px 17px;
+    border: 1px solid var(--border, #cbd5e1);
+    border-radius: 9px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+}
+
+.ds-btn-primary {
+    background: #173b6c;
+    color: #ffffff;
+    border-color: #173b6c;
+}
+
+.ds-btn-secondary {
+    background: var(--surface, #ffffff);
+    color: var(--text, #172033);
+}
+
+.ds-btn-danger {
+    background: transparent;
+    color: #dc2626;
+    border-color: #dc2626;
+}
+
+.ds-btn:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.ds-message {
+    display: none;
+    margin-top: 18px;
+    padding: 13px 15px;
+    border-radius: 9px;
+    overflow-wrap: anywhere;
+}
+
+.ds-message.success {
+    display: block;
+    color: #166534;
+    background: #dcfce7;
+}
+
+.ds-message.error {
+    display: block;
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.ds-page [hidden] {
+    display: none !important;
+}
+
+
+@media (max-width: 650px) {
+    .ds-column {
+        grid-template-columns: 1fr;
+    }
+
+    .ds-btn-danger {
+        justify-self: start;
+    }
+}
+</style>
+
+<div class="ds-page">
+
+    <!-- EXISTING DATA SOURCE INFORMATION -->
+    <section class="card">
+        <h1>Data Sources</h1>
+
+        <p>
+            This application uses SQL Server for business data
+            and Ollama for local language-model inference.
+        </p>
+
+        <h2>SQL Server</h2>
+
+        <p>
+            Database:
+            <strong>TextToSQL_DB</strong>
+        </p>
+
+        <p class="muted">
+            Live connection testing will be added after we verify
+            the connection function in db.py.
+        </p>
+
+        <h2>AI Model</h2>
+
+        <p>
+            Ollama model:
+            <strong>qwen2.5-coder:3b</strong>
+        </p>
+    </section>
+
+
+    <!-- CREATE TABLE -->
+    <section class="card">
+
+        <h2>Create Table</h2>
+
+        <p class="muted">
+            Create a table inside your private SQL Server workspace.
+            You can add up to 50 columns per table.
+            Each workspace supports up to 20 tables.
+        </p>
+
+        <form id="createTableForm" class="ds-form">
+
+            <div class="ds-field">
+                <label for="tableName">
+                    Table Name
+                </label>
+
+                <input
+                    type="text"
+                    id="tableName"
+                    placeholder="Example: Students"
+                    pattern="[A-Za-z][A-Za-z0-9_]*"
+                    maxlength="128"
+                    required
+                >
+            </div>
+
+            <h3>Table Columns</h3>
+
+            <div id="columnsContainer"></div>
+
+            <div class="ds-actions">
+
+                <button
+                    type="button"
+                    id="addColumnBtn"
+                    class="ds-btn ds-btn-secondary"
+                >
+                    + Add Column
+                </button>
+
+                <button
+                    type="submit"
+                    id="createTableBtn"
+                    class="ds-btn ds-btn-primary"
+                >
+                    Create Table
+                </button>
+
+            </div>
+
+            <div
+                id="tableMessage"
+                class="ds-message"
+                role="status"
+                aria-live="polite"
+            ></div>
+
+        </form>
+
+    </section>
+
+    <section class="card">
+        <h2>My Tables</h2>
+
+        <p class="muted">
+            View the tables and columns in your private workspace.
+        </p>
+
+        <div class="ds-actions">
+            <button
+                type="button"
+                id="refreshTablesBtn"
+                class="ds-btn ds-btn-secondary"
+            >
+                Refresh Tables
+            </button>
+        </div>
+
+        <div id="myTablesContainer" aria-live="polite">
+            Loading your tables...
+        </div>
+    </section>
+
+    <!-- INSERT RECORDS -->
+    <section class="card">
+        <h2>Insert Records</h2>
+
+        <p class="muted">
+            Select a table and enter values to add a record
+            to your private SQL Server workspace.
+        </p>
+
+        <form id="insertRecordForm" class="ds-form">
+
+            <div class="ds-field">
+                <label for="insertTableSelect">Select Table</label>
+
+                <select id="insertTableSelect" required>
+                    <option value="">Select a table</option>
+                </select>
+            </div>
+
+            <div id="insertFieldsContainer" class="ds-form"></div>
+
+            <div class="ds-actions">
+                <button
+                    type="submit"
+                    id="insertRecordBtn"
+                    class="ds-btn ds-btn-primary"
+                >
+                    Insert Record
+                </button>
+
+                <button
+                    type="reset"
+                    class="ds-btn ds-btn-secondary"
+                >
+                    Clear
+                </button>
+            </div>
+
+            <div
+                id="insertMessage"
+                class="ds-message"
+                role="status"
+                aria-live="polite"
+            ></div>
+
+        </form>
+    </section>
+
+    <!-- VIEW RECORDS -->
+    <section class="card">
+        <h2>View Records</h2>
+
+        <p class="muted">
+            Select a table to view up to 100 stored records.
+        </p>
+
+        <div class="ds-form">
+                <div class="ds-field">
+                <label for="viewTableSelect">Select Table</label>
+                <select id="viewTableSelect">
+                    <option value="">Select a table</option>
+                </select>
+            </div>
+
+            <div class="ds-actions">
+                <button
+                    type="button"
+                    id="refreshRecordsBtn"
+                    class="ds-btn ds-btn-primary"
+                >
+                    Refresh Records
+                </button>
+            </div>
+
+            <p id="recordCount" class="muted"></p>
+
+            <div
+                id="editRecordMessage"
+                class="ds-message"
+                role="status"
+                aria-live="polite"
+            ></div>
+
+            <div
+                id="editRecordPanel"
+                class="ds-form"
+                hidden
+                style="
+                    margin: 16px 0;
+                    padding: 18px;
+                    border: 1px solid var(--border, #cbd5e1);
+                    border-radius: 12px;
+                "
+            >
+                <h3>Edit Record</h3>
+
+                <form id="editRecordForm" class="ds-form">
+
+                    <div
+                        id="editRecordFields"
+                        class="ds-form"
+                    ></div>
+
+                    <div class="ds-actions">
+
+                        <button
+                            type="submit"
+                            id="saveEditBtn"
+                            class="ds-btn ds-btn-primary"
+                        >
+                            Save Changes
+                        </button>
+
+                        <button
+                            type="button"
+                            id="cancelEditBtn"
+                            class="ds-btn ds-btn-secondary"
+                        >
+                            Cancel
+                        </button>
+
+                    </div>
+
+                </form>
+            </div>
+
+
+            <div
+                id="recordsContainer"
+                style="overflow-x:auto;"
+                aria-live="polite"
+            ></div>
+        </div>
+    </section>
+
+
+
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    const form = document.getElementById("createTableForm");
+    const container = document.getElementById("columnsContainer");
+    const addButton = document.getElementById("addColumnBtn");
+    const submitButton = document.getElementById("createTableBtn");
+    const messageBox = document.getElementById("tableMessage");
+
+    const allowedTypes = [
+        "INT",
+        "BIGINT",
+        "SMALLINT",
+        "BIT",
+        "DATE",
+        "DATETIME2",
+        "FLOAT",
+        "DECIMAL(10,2)",
+        "DECIMAL(18,2)",
+        "VARCHAR(50)",
+        "VARCHAR(100)",
+        "VARCHAR(255)",
+        "NVARCHAR(100)",
+        "NVARCHAR(255)"
+    ];
+
+    const maxColumns = 50;
+
+    function showMessage(message, type) {
+        messageBox.textContent = message;
+        messageBox.className = "ds-message " + type;
+    }
+
+    function addColumn(name = "", type = "INT") {
+        if (container.children.length >= maxColumns) {
+            showMessage("Maximum 50 columns allowed.", "error");
+            return;
+        }
+
+        const row = document.createElement("div");
+        row.className = "ds-column";
+
+        const nameField = document.createElement("div");
+        nameField.className = "ds-field";
+
+        const nameLabel = document.createElement("label");
+        nameLabel.textContent = "Column Name";
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.className = "ds-column-name";
+        nameInput.placeholder = "Example: StudentID";
+        nameInput.maxLength = 128;
+        nameInput.pattern = "[A-Za-z][A-Za-z0-9_]*";
+        nameInput.required = true;
+
+        const typeField = document.createElement("div");
+        typeField.className = "ds-field";
+
+        const typeLabel = document.createElement("label");
+        typeLabel.textContent = "Data Type";
+
+        const typeSelect = document.createElement("select");
+        typeSelect.className = "ds-column-type";
+
+        allowedTypes.forEach(function (allowedType) {
+            const option = document.createElement("option");
+            option.value = allowedType;
+            option.textContent = allowedType;
+
+            if (allowedType === type) {
+                option.selected = true;
+            }
+
+            typeSelect.appendChild(option);
+        });
+
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "ds-btn ds-btn-danger";
+        removeButton.textContent = "Remove";
+
+        removeButton.addEventListener("click", function () {
+            if (container.children.length <= 1) {
+                showMessage(
+                    "A table must have at least one column.",
+                    "error"
+                );
+                return;
+            }
+
+            row.remove();
+            addButton.disabled = false;
+        });
+
+        nameField.append(nameLabel, nameInput);
+        typeField.append(typeLabel, typeSelect);
+
+        row.append(nameField, typeField, removeButton);
+        container.appendChild(row);
+
+        addButton.disabled = container.children.length >= maxColumns;
+    }
+
+    addButton.addEventListener("click", function () {
+        addColumn();
+    });
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const tableName = document
+            .getElementById("tableName")
+            .value.trim();
+
+        const columns = [];
+
+        container.querySelectorAll(".ds-column").forEach(function (row) {
+            columns.push({
+                name: row.querySelector(".ds-column-name").value.trim(),
+                type: row.querySelector(".ds-column-type").value
+            });
+        });
+
+        const names = columns.map(function (column) {
+            return column.name.toLowerCase();
+        });
+
+        if (new Set(names).size !== names.length) {
+            showMessage("Duplicate column names are not allowed.", "error");
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = "Creating...";
+        showMessage("Creating table...", "success");
+
+        try {
+            const response = await fetch(
+                "{{ url_for('workspace_create_table') }}",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token() }}"
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        table_name: tableName,
+                        columns: columns
+                    })
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error || "Unable to create table."
+                );
+            }
+
+            showMessage(
+                "Table '" + result.table + "' created successfully.",
+                "success"
+            );
+
+            form.reset();
+            container.replaceChildren();
+            addColumn();
+            loadMyTables();
+
+        } catch (error) {
+            showMessage(error.message, "error");
+
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = "Create Table";
+        }
+    });
+
+
+    const myTablesContainer = document.getElementById("myTablesContainer");
+    const refreshTablesBtn = document.getElementById("refreshTablesBtn");
+
+    async function loadMyTables() {
+        myTablesContainer.textContent = "Loading your tables...";
+        refreshTablesBtn.disabled = true;
+
+        try {
+            const response = await fetch(
+                "{{ url_for('workspace_my_tables') }}",
+                { credentials: "same-origin" }
+            );
+
+            if (!response.ok) {
+                throw new Error("Unable to load tables.");
+            }
+
+            const result = await response.json();
+            myTablesContainer.replaceChildren();
+
+            if (!result.tables.length) {
+                myTablesContainer.textContent =
+                    "No tables created yet.";
+                return;
+            }
+
+            result.tables.forEach(function (table) {
+                const details = document.createElement("details");
+                details.style.marginTop = "14px";
+
+                const summary = document.createElement("summary");
+                summary.textContent =
+                    table.name + " (" + table.columns.length + " columns)";
+                summary.style.cursor = "pointer";
+                summary.style.fontWeight = "600";
+
+                const list = document.createElement("ul");
+
+                table.columns.forEach(function (column) {
+                    const item = document.createElement("li");
+                    item.textContent = column.name + " — " + column.type;
+                    list.appendChild(item);
+                });
+
+                details.append(summary, list);
+                myTablesContainer.appendChild(details);
+            });
+
+        } catch (error) {
+            myTablesContainer.textContent = error.message;
+
+        } finally {
+            refreshTablesBtn.disabled = false;
+        }
+    }
+
+    refreshTablesBtn.addEventListener("click", loadMyTables);
+    loadMyTables();
+
+
+
+    // ============================================
+    // INSERT RECORDS
+    // ============================================
+
+    const insertForm = document.getElementById("insertRecordForm");
+    const insertTableSelect = document.getElementById("insertTableSelect");
+    const insertFieldsContainer = document.getElementById("insertFieldsContainer");
+    const insertRecordBtn = document.getElementById("insertRecordBtn");
+    const insertMessage = document.getElementById("insertMessage");
+
+    let insertTables = [];
+
+    function showInsertMessage(message, type) {
+        insertMessage.textContent = message;
+        insertMessage.className = "ds-message " + type;
+    }
+
+    async function loadInsertTables() {
+        try {
+            const response = await fetch(
+                "{{ url_for('workspace_my_tables') }}",
+                { credentials: "same-origin" }
+            );
+
+            if (!response.ok) {
+                throw new Error("Unable to load tables.");
+            }
+
+            const result = await response.json();
+            insertTables = result.tables;
+
+            insertTableSelect.replaceChildren();
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Select a table";
+            insertTableSelect.appendChild(placeholder);
+
+            insertTables.forEach(function (table) {
+                const option = document.createElement("option");
+                option.value = table.name;
+                option.textContent = table.name;
+                insertTableSelect.appendChild(option);
+            });
+
+            insertFieldsContainer.replaceChildren();
+
+        } catch (error) {
+            showInsertMessage(error.message, "error");
+        }
+    }
+
+    insertTableSelect.addEventListener("change", function () {
+        insertFieldsContainer.replaceChildren();
+        insertMessage.className = "ds-message";
+        insertMessage.textContent = "";
+
+        const table = insertTables.find(function (item) {
+            return item.name === insertTableSelect.value;
+        });
+
+        if (!table) {
+            return;
+        }
+
+        table.columns.forEach(function (column) {
+            const field = document.createElement("div");
+            field.className = "ds-field";
+
+            const label = document.createElement("label");
+            label.textContent = column.name + " (" + column.type + ")";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.dataset.columnName = column.name;
+            input.dataset.columnType = column.type;
+            input.placeholder = "Enter " + column.name;
+            input.required = true;
+
+            field.append(label, input);
+            insertFieldsContainer.appendChild(field);
+        });
+    });
+
+    insertForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const tableName = insertTableSelect.value;
+
+        if (!tableName) {
+            showInsertMessage("Please select a table.", "error");
+            return;
+        }
+
+        const values = {};
+
+        insertFieldsContainer.querySelectorAll("input").forEach(function (input) {
+            const type = input.dataset.columnType.toUpperCase();
+            const rawValue = input.value.trim();
+
+            if (type === "BIT") {
+                values[input.dataset.columnName] = rawValue === "1" ? 1 : 0;
+            } else {
+                values[input.dataset.columnName] = rawValue;
+            }
+        });
+
+        insertRecordBtn.disabled = true;
+        insertRecordBtn.textContent = "Inserting...";
+
+        try {
+            const response = await fetch(
+                "{{ url_for('workspace_insert_record') }}",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token() }}"
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        table_name: tableName,
+                        values: values
+                    })
+                }
+            );
+
+            const contentType = response.headers.get("content-type") || "";
+
+            if (!contentType.includes("application/json")) {
+                throw new Error(
+                    "Server returned an unexpected response. Please sign in again if your session expired."
+                );
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error || "Unable to insert record."
+                );
+            }
+
+            showInsertMessage(
+                "Record inserted successfully into '" + result.table + "'.",
+                "success"
+            );
+
+            insertFieldsContainer.querySelectorAll("input").forEach(function (input) {
+                input.value = "";
+            });
+
+        } catch (error) {
+            showInsertMessage(error.message, "error");
+
+        } finally {
+            insertRecordBtn.disabled = false;
+            insertRecordBtn.textContent = "Insert Record";
+        }
+    });
+
+    insertForm.addEventListener("reset", function () {
+        insertMessage.className = "ds-message";
+        insertMessage.textContent = "";
+    });
+
+    // Load available tables when the page opens.
+    loadInsertTables();
+
+
+
+    // ============================================
+    // VIEW RECORDS
+    // ============================================
+
+    const viewTableSelect = document.getElementById("viewTableSelect");
+    const refreshRecordsBtn = document.getElementById("refreshRecordsBtn");
+    const recordsContainer = document.getElementById("recordsContainer");
+    const recordCount = document.getElementById("recordCount");
+
+    async function loadViewTables() {
+        try {
+            const response = await fetch(
+                "{{ url_for('workspace_my_tables') }}",
+                { credentials: "same-origin" }
+            );
+
+            if (!response.ok) {
+                throw new Error("Unable to load tables.");
+            }
+
+            const result = await response.json();
+
+            viewTableSelect.replaceChildren();
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = "Select a table";
+            viewTableSelect.appendChild(placeholder);
+
+            result.tables.forEach(function (table) {
+                const option = document.createElement("option");
+                option.value = table.name;
+                option.textContent = table.name;
+                viewTableSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            recordsContainer.textContent = error.message;
+        }
+    }
+
+    // ============================================
+    // UPDATE AND DELETE RECORDS
+    // ============================================
+
+    const editPanel = document.getElementById("editRecordPanel");
+    const editForm = document.getElementById("editRecordForm");
+    const editFields = document.getElementById("editRecordFields");
+    const editMessage = document.getElementById("editRecordMessage");
+    const saveEditBtn = document.getElementById("saveEditBtn");
+
+    let selectedRecord = null;
+
+    function recordMessage(text, type) {
+        editMessage.textContent = text;
+        editMessage.className = text
+            ? "ds-message " + type
+            : "ds-message";
+    }
+
+    function closeEdit() {
+        editPanel.hidden = true;
+        selectedRecord = null;
+        editFields.replaceChildren();
+    }
+
+    document.getElementById("cancelEditBtn")
+        .addEventListener("click", closeEdit);
+
+    async function recordApi(endpoint, body) {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify(body)
+        });
+
+        const contentType =
+            response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+            throw new Error(
+                "Unexpected response. Please sign in again."
+            );
+        }
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.error || "Request failed."
+            );
+        }
+
+        return result;
+    }
+
+    function openEdit(tableName, columns, row, primaryKeys) {
+        closeEdit();
+        recordMessage("", "success");
+
+        const keys = {};
+
+        primaryKeys.forEach(function (name) {
+            keys[name] = row[columns.indexOf(name)];
+        });
+
+        selectedRecord = {
+            tableName: tableName,
+            keys: keys
+        };
+
+        columns.forEach(function (name, index) {
+            const field = document.createElement("div");
+            field.className = "ds-field";
+
+            const label = document.createElement("label");
+
+            label.textContent = name + (
+                primaryKeys.includes(name)
+                    ? " (primary key)"
+                    : ""
+            );
+
+            const input = document.createElement("input");
+
+            input.type = "text";
+            input.dataset.column = name;
+
+            const value = row[index];
+
+            input.value = value === null
+                ? ""
+                : String(value);
+
+            input.dataset.original = input.value;
+
+            if (primaryKeys.includes(name)) {
+                input.disabled = true;
+            }
+
+            field.append(label, input);
+            editFields.appendChild(field);
+        });
+
+        editPanel.hidden = false;
+
+        editPanel.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest"
+        });
+    }
+
+    editForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        if (!selectedRecord) {
+            return;
+        }
+
+        const values = {};
+
+        editFields.querySelectorAll(
+            "input:not(:disabled)"
+        ).forEach(function (input) {
+            if (input.value !== input.dataset.original) {
+                values[input.dataset.column] = input.value;
+            }
+        });
+
+        if (!Object.keys(values).length) {
+            recordMessage(
+                "No changes to save.",
+                "error"
+            );
+            return;
+        }
+
+        saveEditBtn.disabled = true;
+        saveEditBtn.textContent = "Saving...";
+
+        try {
+            await recordApi(
+                "{{ url_for('workspace_update_record') }}",
+                {
+                    table_name: selectedRecord.tableName,
+                    keys: selectedRecord.keys,
+                    values: values
+                }
+            );
+
+            closeEdit();
+
+            recordMessage(
+                "Record updated successfully.",
+                "success"
+            );
+
+            await loadRecords(true);
+
+        } catch (error) {
+            recordMessage(error.message, "error");
+
+        } finally {
+            saveEditBtn.disabled = false;
+            saveEditBtn.textContent = "Save Changes";
+        }
+    });
+
+
+    // ============================================
+    // VIEW RECORDS WITH EDIT AND DELETE BUTTONS
+    // ============================================
+
+    async function loadRecords(preserveMessage = false) {
+        preserveMessage = preserveMessage === true;
+
+        const tableName = viewTableSelect.value;
+
+        recordsContainer.replaceChildren();
+        recordCount.textContent = "";
+        closeEdit();
+
+        if (!preserveMessage) {
+            recordMessage("", "success");
+        }
+
+        if (!tableName) {
+            recordsContainer.textContent =
+                "Please select a table.";
+            return;
+        }
+
+        refreshRecordsBtn.disabled = true;
+        recordsContainer.textContent = "Loading records...";
+
+        try {
+            const url =
+                "{{ url_for('workspace_view_records') }}" +
+                "?table=" + encodeURIComponent(tableName);
+
+            const response = await fetch(url, {
+                credentials: "same-origin"
+            });
+
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            if (!contentType.includes("application/json")) {
+                throw new Error(
+                    "Unexpected server response. Please sign in again."
+                );
+            }
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error || "Unable to load records."
+                );
+            }
+
+            const keyResponse = await fetch(
+                "{{ url_for('workspace_record_keys') }}" +
+                "?table=" + encodeURIComponent(tableName),
+                {
+                    credentials: "same-origin"
+                }
+            );
+
+            const keyContentType =
+                keyResponse.headers.get("content-type") || "";
+
+            if (!keyContentType.includes("application/json")) {
+                throw new Error(
+                    "Unable to load primary keys."
+                );
+            }
+
+            const keyResult = await keyResponse.json();
+
+            if (!keyResponse.ok) {
+                throw new Error(
+                    keyResult.error || "Unable to load primary keys."
+                );
+            }
+
+            const primaryKeys = keyResult.primary_keys;
+
+            const editable =
+                primaryKeys.length > 0 &&
+                primaryKeys.every(function (name) {
+                    return result.columns.includes(name);
+                });
+
+            if (!editable) {
+                recordMessage(
+                    "This table has no usable primary key. " +
+                    "Update and Delete are unavailable.",
+                    "error"
+                );
+            }
+
+            recordsContainer.replaceChildren();
+
+            recordCount.textContent =
+                "Showing " + result.count +
+                " record(s), maximum 100.";
+
+            if (!result.rows.length) {
+                recordsContainer.textContent =
+                    "No records found in this table.";
+                return;
+            }
+
+            const table = document.createElement("table");
+
+            table.style.width = "100%";
+            table.style.borderCollapse = "collapse";
+
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+
+            result.columns.forEach(function (column) {
+                const th = document.createElement("th");
+
+                th.textContent = column;
+                th.style.padding = "12px";
+                th.style.textAlign = "left";
+                th.style.borderBottom =
+                    "1px solid var(--border, #cbd5e1)";
+
+                headerRow.appendChild(th);
+            });
+
+            if (editable) {
+                const actionHeader = document.createElement("th");
+                actionHeader.textContent = "Actions";
+                actionHeader.style.padding = "12px";
+
+                headerRow.appendChild(actionHeader);
+            }
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            result.rows.forEach(function (record) {
+                const tr = document.createElement("tr");
+
+                record.forEach(function (value) {
+                    const td = document.createElement("td");
+
+                    td.textContent =
+                        value === null ? "NULL" : String(value);
+
+                    td.style.padding = "12px";
+                    td.style.borderBottom =
+                        "1px solid var(--border, #cbd5e1)";
+
+                    tr.appendChild(td);
+                });
+
+                if (editable) {
+                    const actionCell = document.createElement("td");
+
+                    actionCell.style.padding = "12px";
+                    actionCell.style.whiteSpace = "nowrap";
+
+                    // EDIT BUTTON
+
+                    const editBtn = document.createElement("button");
+
+                    editBtn.type = "button";
+                    editBtn.className =
+                        "ds-btn ds-btn-secondary";
+                    editBtn.textContent = "Edit";
+
+                    editBtn.addEventListener(
+                        "click",
+                        function () {
+                            openEdit(
+                                tableName,
+                                result.columns,
+                                record,
+                                primaryKeys
+                            );
+                        }
+                    );
+
+                    // DELETE BUTTON
+
+                    const deleteBtn = document.createElement("button");
+
+                    deleteBtn.type = "button";
+                    deleteBtn.className =
+                        "ds-btn ds-btn-danger";
+                    deleteBtn.textContent = "Delete";
+                    deleteBtn.style.marginLeft = "8px";
+
+                    deleteBtn.addEventListener(
+                        "click",
+                        async function () {
+                            const confirmed = window.confirm(
+                                "Permanently delete this record?"
+                            );
+
+                            if (!confirmed) {
+                                return;
+                            }
+
+                            const keys = {};
+
+                            primaryKeys.forEach(function (name) {
+                                keys[name] = record[
+                                    result.columns.indexOf(name)
+                                ];
+                            });
+
+                            deleteBtn.disabled = true;
+                            deleteBtn.textContent = "Deleting...";
+
+                            try {
+                                await recordApi(
+                                    "{{ url_for('workspace_delete_record') }}",
+                                    {
+                                        table_name: tableName,
+                                        keys: keys
+                                    }
+                                );
+
+                                recordMessage(
+                                    "Record deleted successfully.",
+                                    "success"
+                                );
+
+                                await loadRecords(true);
+
+                            } catch (error) {
+                                recordMessage(
+                                    error.message,
+                                    "error"
+                                );
+
+                                deleteBtn.disabled = false;
+                                deleteBtn.textContent = "Delete";
+                            }
+                        }
+                    );
+
+                    actionCell.append(editBtn, deleteBtn);
+                    tr.appendChild(actionCell);
+                }
+
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(tbody);
+            recordsContainer.appendChild(table);
+
+        } catch (error) {
+            recordsContainer.textContent = error.message;
+
+        } finally {
+            refreshRecordsBtn.disabled = false;
+        }
+    }
+
+
+
+    // ============================================
+    // VIEW RECORDS EVENT LISTENERS
+    // ============================================
+
+    viewTableSelect.addEventListener("change", function () {
+        loadRecords();
+    });
+
+    refreshRecordsBtn.addEventListener("click", function () {
+        loadRecords();
+    });
+
+    // Load tables for View Records
+    loadViewTables();
+
+    // Start with one column.
+    addColumn();
+
+})();
+</script>
+
+{% endblock %}

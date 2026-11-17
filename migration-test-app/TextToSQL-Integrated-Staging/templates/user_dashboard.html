@@ -1,0 +1,118 @@
+
+{% extends "base.html" %}
+
+{% block title %}User Dashboard | AI Text-to-SQL Assistant{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+    <div>
+        <h1>Your Dashboard</h1>
+        <p class="muted">
+            Welcome, {{ session.get('username', 'User') }}!
+            Explore your database and manage your queries.
+        </p>
+    </div>
+    <a class="button" href="{{ url_for('user_home') }}">
+        + Ask a Question
+    </a>
+</section>
+
+<section class="dashboard-grid">
+    <article class="card stat-card">
+        <span class="stat-icon">⌕</span>
+        <p class="muted">Recent Queries</p>
+        <h2>{{ history|length }}</h2>
+        <p class="muted">Latest 10 saved queries</p>
+    </article>
+
+    <article class="card stat-card">
+        <span class="stat-icon">▤</span>
+        <p class="muted">Database</p>
+        <h2>SQL Server</h2>
+        <p class="muted">Your existing database connection</p>
+    </article>
+
+    <article class="card stat-card">
+        <span class="stat-icon">✦</span>
+        <p class="muted">AI Assistant</p>
+        <h2>Ollama</h2>
+        <p class="muted">Natural language to SQL</p>
+    </article>
+</section>
+
+<section class="card">
+    <div class="section-heading">
+        <div>
+            <h2>Quick Actions</h2>
+            <p class="muted">Start working with your data.</p>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <a class="action-card" href="{{ url_for('user_home') }}">
+            <span class="action-icon">⌕</span>
+            <strong>Ask Your Database</strong>
+            <span class="muted">Ask a question in plain English.</span>
+        </a>
+
+        <a class="action-card" href="{{ url_for('data_sources') }}">
+            <span class="action-icon">▤</span>
+            <strong>Data Sources</strong>
+            <span class="muted">View database connection information.</span>
+        </a>
+    </div>
+</section>
+
+<section class="card">
+    <div class="section-heading">
+        <div>
+            <h2>Recent Queries</h2>
+            <p class="muted">Your latest saved query activity.</p>
+        </div>
+        <a href="{{ url_for('user_home') }}">Ask another question →</a>
+    </div>
+
+    {% if history %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Status</th>
+                    <th>Date and Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in history %}
+                <tr>
+                    <td>{{ item.question }}</td>
+                    <td>
+                        <span class="status-pill
+                            {% if item.status == 'completed' %}
+                                status-success
+                            {% else %}
+                                status-other
+                            {% endif %}">
+                            {{ item.status|capitalize }}
+                        </span>
+                    </td>
+                    <td>{{ item.created_at }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-icon">⌕</span>
+        <h3>No queries yet</h3>
+        <p class="muted">
+            Ask your first database question to see your activity here.
+        </p>
+        <a class="button" href="{{ url_for('user_home') }}">
+            Ask Your First Question
+        </a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

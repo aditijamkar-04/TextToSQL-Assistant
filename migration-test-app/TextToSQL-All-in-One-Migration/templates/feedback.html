@@ -1,0 +1,49 @@
+
+{% extends "base.html" %}
+
+{% block title %}Feedback & Suggestions{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>Feedback & Suggestions</h1>
+    <p class="muted">
+        Help us improve the AI Text-to-SQL Assistant.
+        Your feedback is visible to the administrator.
+    </p>
+
+    <form method="POST" action="{{ url_for('feedback') }}">
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="{{ csrf_token() }}"
+        >
+
+        <div>
+            <label for="category">Feedback category</label>
+            <select id="category" name="category" required>
+                <option value="">Select a category</option>
+                <option value="Suggestion">Suggestion</option>
+                <option value="Bug Report">Bug Report</option>
+                <option value="General Feedback">General Feedback</option>
+            </select>
+        </div>
+
+        <div style="margin-top: 16px;">
+            <label for="message">Your feedback</label>
+            <textarea
+                id="message"
+                name="message"
+                rows="6"
+                maxlength="2000"
+                required
+                placeholder="Share your suggestion or describe a problem..."
+                style="width: 100%;"
+            ></textarea>
+        </div>
+
+        <button class="button" type="submit" style="margin-top: 16px;">
+            Submit Feedback
+        </button>
+    </form>
+</section>
+{% endblock %}
