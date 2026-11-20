@@ -55,13 +55,19 @@ Here is a look at the main sections of the application.
 
 <img width="1898" height="882" alt="Screenshot 2026-11-20 135100" src="https://github.com/user-attachments/assets/85e0b5b9-2506-42ce-81c9-fbaa47e55c68" />
 
+
+
 | 🏠 User Dashboard |
 
 <img width="1893" height="910" alt="Screenshot 2026-11-20 135830" src="https://github.com/user-attachments/assets/94be1ac0-3183-4572-ae5b-0310dd5157f0" />
 
+
+
 | 🤖 SQL Generation |
 
 <img width="1777" height="797" alt="Screenshot 2026-11-20 135925" src="https://github.com/user-attachments/assets/d9d2efe4-ea74-415a-a50f-e4e09f9c8a59" />
+
+
 
 | 📊 Query Results |
 
