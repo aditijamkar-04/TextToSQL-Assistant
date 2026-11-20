@@ -52,15 +52,19 @@ The project combines AI integration, Python backend development, SQL Server conn
 Here is a look at the main sections of the application.
 
 | 🔐 Login Page | 
+
 <img width="1898" height="882" alt="Screenshot 2026-11-20 135100" src="https://github.com/user-attachments/assets/85e0b5b9-2506-42ce-81c9-fbaa47e55c68" />
 
 | 🏠 User Dashboard |
+
 <img width="1893" height="910" alt="Screenshot 2026-11-20 135830" src="https://github.com/user-attachments/assets/94be1ac0-3183-4572-ae5b-0310dd5157f0" />
 
 | 🤖 SQL Generation |
+
 <img width="1777" height="797" alt="Screenshot 2026-11-20 135925" src="https://github.com/user-attachments/assets/d9d2efe4-ea74-415a-a50f-e4e09f9c8a59" />
 
 | 📊 Query Results |
+
 <img width="1765" height="806" alt="Screenshot 2026-11-20 140004" src="https://github.com/user-attachments/assets/651101c5-7030-4abc-b7e2-aa11cb6e85c7" />
 
 ---
