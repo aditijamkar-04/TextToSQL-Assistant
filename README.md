@@ -1,10 +1,11 @@
  # 🤖 AI-Powered Text-to-SQL Assistant
 
-  [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
-  [![Flask](https://img.shields.io/badge/Flask-Web_Framework-black?logo=flask)]
-  [![SQL Server](https://img.shields.io/badge/Microsoft-SQL_Server-red?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/en-us/sql-server)
-  [![Groq](https://img.shields.io/badge/Groq-API-orange)](https://groq.com/)
-  [![SQLGlot](https://img.shields.io/badge/SQLGlot-SQL_Validation-purple)](https://sqlglot.com/)
+
+![Python](https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.1.3-black?style=for-the-badge&logo=flask&logoColor=white)
+![SQL Server](https://img.shields.io/badge/Microsoft-SQL_Server-red?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
+![Groq](https://img.shields.io/badge/Groq-API-orange?style=for-the-badge)
+![SQLGlot](https://img.shields.io/badge/SQLGlot-SQL_Validation-blueviolet?style=for-the-badge)
 
 **Ask questions in plain English. Get SQL queries and database results.**
 
