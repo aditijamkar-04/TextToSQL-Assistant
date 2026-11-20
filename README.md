@@ -1,6 +1,6 @@
-                   # 🤖 AI-Powered Text-to-SQL Assistant
+ #                                 🤖 AI-Powered Text-to-SQL Assistant
 
-            [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
+  [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
             [![Flask](https://img.shields.io/badge/Flask-Web_Framework-black?logo=flask)](https://flask.palletsprojects.com/)
             [![SQL Server](https://img.shields.io/badge/Microsoft-SQL_Server-red?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/en-us/sql-server)
             [![Groq](https://img.shields.io/badge/Groq-API-orange)](https://groq.com/)
